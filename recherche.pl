@@ -116,35 +116,6 @@ my  $dbh = DBI->connect ("DBI:SQLite:dbname=sqlite/tamil.sqlite","","")
     return $dbh;
 
 }
-#------------------------
-sub cologne_opendb { # EJF
-# ignore dbname passed as argument
-require DBI;
-my  $dbh = DBI->connect ("DBI:SQLite:dbname=tamil.sqlite","","")
-             || die "Could not connect to database: "
-             . DBI-> errstr;
-    my $dbname = "sanskrit-lexicon";
-    my $dbpwd = "xxxxx";
-    my  $dbh = DBI->connect ("DBI:mysql:sanskrit-lexicon:mysql.rrz.uni-koeln.de",
-			 $dbname,$dbpwd)
-             || die "Could not connect to database $dbname:  "
-             . DBI-> errstr;
-#print "dbh = $dbh\n";
-    return $dbh;
-
-}
-#------------------------
-sub old_opendb {
-#------------------------
-return if $DbOpened;
-my $dbname=shift;
-require DBI;
-$defaults="/home/webapps/.my.cnf";
-$dbdriver='mysql';
-$dbsource="DBI:$dbdriver:$dbname;mysql_read_default_file=$defaults";
-#print "dbsource=$dbsource<br>\n";
-$DbOpened=1;
-$dbh=DBI->connect($dbsource) || &fehler("No data base connection");}
 
 #------------------------
 sub closedb {
