@@ -2,8 +2,8 @@
 A port of http://www.sanskrit-lexicon.uni-koeln.de/scans/MWScan/tamil/index.html.
 
 The 'Sanskrit and Tamil Dictionaries' is a web application created c. 2003 by
-Thomas Malten (who supplied the digitized dictionaries) and a programmer
-whose initials are identified as 'SV'.  
+Thomas Malten (who supplied the digitized dictionaries) and Kira Stöwe (who
+programmed the display) .  
 
 This repository contains all the programs and data required to run this
 application on an appropriate web server.
