@@ -1,2 +1,5 @@
 # ignore emacs temp files
 *~
+# ignore temp files
+temp*
+
