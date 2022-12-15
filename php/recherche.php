@@ -184,10 +184,11 @@ function where1($var,$varname,$pr) {
     $ans1 ="($lowdata like '%$x%')";
   }
   if ($ipart != 0) {
-   $ans = " and $ans1";
+   $ans .= " and $ans1";
   }else {
-   $ans = $ans1;
+   $ans .= $ans1;
   }
+  // echo "where1 dbg: ipart=$ipart, part=$part, ans1=$ans1, ans=$ans<br>\n";
  }
  return $ans;
 }
@@ -212,6 +213,7 @@ function selectfromdb($sql) {
    fehler("Cannot open " . $sqlitefile . "\n");
   }
  $file_db->sqliteCreateFunction('regexp', '_sqliteRegexp', 2);
+ //echo "sql=$sql<br>\n";
  try {
   $result = $file_db->query($sql);
  } catch (PDOException $e)  {
