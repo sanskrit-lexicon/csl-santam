@@ -180,7 +180,9 @@ function where1($var,$varname,$pr) {
     $ans1 ="($lowdata $regexp '$wb$x$we')";
   } else if ($pr == "prefix") {
     $ans1 ="($lowdata $regexp '$wb$x')";
-  } else {
+  } else if ($pr == "suffix") {
+    $ans1 ="($lowdata $regexp '$x$we')";
+  } else { // substring
     $ans1 ="($lowdata like '%$x%')";
   }
   if ($ipart != 0) {
