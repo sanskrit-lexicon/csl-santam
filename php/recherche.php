@@ -200,7 +200,8 @@ function sanitize_REQUEST_all() {
   $old = $_REQUEST[$key];
   // remove all HTML tags from a string
   // another could be FILTER_SANITIZE_URL
-  $new = filter_var($old,FILTER_SANITIZE_STRING);
+  //$new = filter_var($old,FILTER_SANITIZE_STRING); //deprecated php 8.2
+  $new = filter_var($old,FILTER_SANITIZE_URL);
   $_REQUEST[$key] = $new;
  }
 }
