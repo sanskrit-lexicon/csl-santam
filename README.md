@@ -11,7 +11,7 @@ The four dictionaries and their entry counts:
 | Tamil Lexicon | 3 | `otl` | Cologne Online Tamil Lexicon | 117,773 | active |
 | Pahlavi | 4 | `cpd` | Concise Pahlavi Dictionary | 4,218 | **disabled** |
 
-`all` searches mwd + cap + otl combined = **325,838** entries. The Concise Pahlavi Dictionary (id 4) is present in the data and in [dat/books](https://github.com/sanskrit-lexicon/csl-santam/blob/master/dat/books), but its `<option value=cpd>` is HTML-commented out of the form and it is excluded from `all` (the SQL filters `id<4`), so it is not reachable through the UI.
+`all` searches mwd + cap + otl combined = **321,620** entries (the form advertises "325,838", which counts all four dictionaries including the disabled Pahlavi). The Concise Pahlavi Dictionary (id 4) is present in the data and in [dat/books](https://github.com/sanskrit-lexicon/csl-santam/blob/master/dat/books), but its `<option value=cpd>` is HTML-commented out of the form and it is excluded from `all` (the SQL filters `id<4`), so it is not reachable through the UI.
 
 ---
 
