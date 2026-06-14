@@ -209,7 +209,7 @@ Still in [php/recherche.php](https://github.com/sanskrit-lexicon/csl-santam/blob
 - **Per-result row** (loop over `$results`): prints a 1-based hit number, then:
   - **dict-book lookup** — in `all`-mode it derives `$idx = intval($id) - 1` and looks up `$dictbooks[$idx]` to print the per-row short code `($bshort)` in a column; a single-dictionary search shows no book column.
   - **headword** — `<b>$st</b>`.
-  - **`en` field encoding conversion** — `$en1 = iconv("Windows-1252","UTF-8",$en)`: the raw `en` bytes are read as Windows-1252 and converted to UTF-8 before output (otherwise "unprintable characters" appear). A code comment notes a cleaner fix would be to `iconv` `ganz.txt` once and rebuild the SQLite DB; the Perl code performs this conversion itself.
+  - **`en` field encoding conversion** — `$en1 = iconv("Windows-1252","UTF-8",$en)`: the raw `en` bytes are read as Windows-1252 and converted to UTF-8 before output (otherwise "unprintable characters" appear). A code comment notes a cleaner fix would be to `iconv` `ganz.txt` once and rebuild the SQLite DB; per that comment the original Perl backend "seems to do this conversion on its own."
 - `$id`/`$st`/`$en` are deliberately rebound as loop locals via `list($id,$st,$en) = $result;`, **shadowing** the request-level `$st`/`$en`.
 - An empty result set prints `No entries found.`
 
@@ -223,7 +223,7 @@ Per [readme_dev.txt](https://github.com/sanskrit-lexicon/csl-santam/blob/master/
 - The Perl backend is `perl/recherche.pl` + `perl/cgi-include2.pl`; the entry form is `perl/index.html`. Shebang `#!"C:\xampp\perl\bin\perl.exe"` (XAMPP CGI). Modules sit next to `index.html`, not in `cgi-bin`.
 - **The one documented divergence**: the PHP port **drops the `all` option for "Maximum Output."** In [php/index.html](https://github.com/sanskrit-lexicon/csl-santam/blob/master/php/index.html) the choices are `20 / 50 / 100 / 200 / 500 / 1000` (default 50) and `<option value=1000000>all` is HTML-commented out. The Perl original offered "all".
 - Both share the same data path: the SQLite `tamil.sqlite` built from `ganz.txt` via [def.sql](https://github.com/sanskrit-lexicon/csl-santam/blob/master/sqlite/def.sql) / [redo.bat](https://github.com/sanskrit-lexicon/csl-santam/blob/master/sqlite/redo.bat).
-- **`en` handling difference**: the Perl code performs the Windows-1252→UTF-8 conversion itself; the PHP port does it inline per row via `iconv` at render time.
+- **`en` handling difference**: the original Perl backend appears to perform the Windows-1252→UTF-8 conversion itself (its source comment hedges, "seems to do this conversion on its own"); the PHP port does it inline per row via `iconv` at render time.
 - **Cologne origin**: in the upstream Cologne deployment the data is in MySQL and the SQL differs slightly for SQLite; the readme notes the displays are "almost, though not exactly, identical."
 
 ---
@@ -320,27 +320,7 @@ Check items off as sub-tasks land; on handoff, move finished work to **✅ Compl
 
 ### `CHANGELOG.md`
 
-Must be valid [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), **newest-first** (most recent release/entry at the top), each change-bearing entry linking the **full PR URL**. The 2026-06-14 hardening pass produces this top block:
-
-```markdown
-# Changelog
-
-All notable changes to this project are documented here. The format is
-based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
-
-## [Unreleased]
-
-### Security
-- Reflected XSS in `fehler()` error output escaped via `htmlspecialchars($msg, ENT_QUOTES)` — https://github.com/sanskrit-lexicon/csl-santam/pull/4
-- SQL injection in `where1()`: search term escaped for the SQLite string literal (single-quote doubling) — https://github.com/sanskrit-lexicon/csl-santam/pull/5
-- SQL injection via `maxhits`: cast to `(int)` before the `LIMIT` clause — https://github.com/sanskrit-lexicon/csl-santam/pull/6
-- Regex injection / ReDoS: regexp-branch search term `preg_quote()`d before `_sqliteRegexp` (LIKE branch unchanged) — https://github.com/sanskrit-lexicon/csl-santam/pull/7
-
-### Changed
-- Bump `dependabot/fetch-metadata` 2 → 3 — https://github.com/sanskrit-lexicon/csl-santam/pull/3
-```
-
-Newer entries are prepended above older ones; never append at the bottom.
+[CHANGELOG.md](https://github.com/sanskrit-lexicon/csl-santam/blob/master/CHANGELOG.md) is a valid [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) file: **newest-first**, with a dated `## [Unreleased]` heading, canonical sections (`### Security`, `### Changed`, …), and each change-bearing entry linking the **full PR URL** as `([PR #N](…))`. The 2026-06-14 hardening pass added the four `### Security` entries (PRs [#4](https://github.com/sanskrit-lexicon/csl-santam/pull/4)–[#7](https://github.com/sanskrit-lexicon/csl-santam/pull/7)) and the `### Changed` Dependabot bump ([#3](https://github.com/sanskrit-lexicon/csl-santam/pull/3)) now at the top of that file — see it for the canonical format. Newer entries are prepended above older ones; never append at the bottom.
 
 ### `README.md`
 
