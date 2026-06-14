@@ -177,14 +177,20 @@ function where1($var,$varname,$pr) {
  $lowdata = "lower($varname)";  //lower is sqlite function name
  for($ipart=0;$ipart < count($parts); $ipart++) {
   $part = $parts[$ipart];
-  // SQLi guard: $part is user input; escape ' for the SQLite string literal it is interpolated into below.
-  $x = str_replace("'", "''", strtolower($part));
+  $part_l = strtolower($part);
+  // SQLi guard: escape ' for the SQLite string literal (the LIKE branch).
+  $x = str_replace("'", "''", $part_l);
+  // The regexp branches feed the value into _sqliteRegexp() -> preg_match() as a PCRE
+  // pattern, so the term must ALSO be preg_quote()d -- otherwise regex metacharacters
+  // inject and a term like "(a+)+" is a catastrophic-backtracking ReDoS (run per row).
+  // $wb/$we are the intended \b word-boundary anchors and are left active.
+  $xr = str_replace("'", "''", preg_quote($part_l, '/'));
   if ($pr == "exact") {
-    $ans1 ="($lowdata $regexp '$wb$x$we')";
+    $ans1 ="($lowdata $regexp '$wb$xr$we')";
   } else if ($pr == "prefix") {
-    $ans1 ="($lowdata $regexp '$wb$x')";
+    $ans1 ="($lowdata $regexp '$wb$xr')";
   } else if ($pr == "suffix") {
-    $ans1 ="($lowdata $regexp '$x$we')";
+    $ans1 ="($lowdata $regexp '$xr$we')";
   } else { // substring
     $ans1 ="($lowdata like '%$x%')";
   }
