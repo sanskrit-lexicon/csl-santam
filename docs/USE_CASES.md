@@ -136,7 +136,7 @@ Search is **always case-insensitive**. Both the data column (`lower(col)`) and t
 
 **HK case caveat — this is lossy.** In Harvard-Kyoto, *letter case is semantic*: `A` = long ā vs `a` = short a; `T` = retroflex ṭ vs `t` = dental t; `S`/`z` vs `s`; `N`/`G`/`J` vs `n`. After case-folding, these distinctions **collapse**:
 
-- `st=ata` and `st=aTa` (exact) match the **same** rows — the retroflex/dental contrast is erased.
+- `st=ata` and `st=aTa` (exact) match the **same** rows — both the term and the `lower(st)` column are lowercased, so the retroflex/dental contrast is erased on both sides.
 - `st=akAra` is folded to `akara`, so it can also match a stored `akara`-style spelling once both are lowercased.
 
 This is the intentional *"not case sensitive"* design advertised on the form, but it conflates genuine phonemic contrasts. To disambiguate you must rely on the surrounding spelling and context, not letter case.
@@ -171,10 +171,10 @@ Each row gives the exact form-field values and the expected behavior. For an API
 | 5 | `mwd` | — | — | `elephant` | `exact` | `200` | Reverse lookup: MW entries whose **description** contains the whole word *elephant* — e.g. **gaja, hastin, nAga, dvipa, …**. Demonstrates the `en` field. |
 | 6 | `mwd` | `gaja` | `exact` | `elephant` | `exact` | `50` | **Both fields → AND.** Only the entry whose headword is **gaja** *and* whose gloss contains *elephant*. Intersects headword + meaning. |
 | 7 | `mwd` | — | — | `white elephant` | `exact` | `50` | **Multi-word `en` → AND, unordered.** Entries whose description contains *both* *white* and *elephant*, in any order — not a phrase. |
-| 8 | `otl` | `amma` | `prefix` | — | — | `50` | **Tamil dictionary.** Online Tamil Lexicon headwords beginning with `amma` (Tamil HK scheme — `jn`/`n2` rules apply). Returns Tamil entries with English meanings. |
+| 8 | `otl` | `amma` | `prefix` | — | — | `50` | **Tamil dictionary.** Online Tamil Lexicon headwords beginning with `amma` (Tamil HK scheme; `amma` uses no special Tamil letters, so it is a plain prefix match). Returns Tamil entries with English meanings. |
 | 9 | `cap` | `dharma` | `exact` | — | — | `20` | Capeller's concise dictionary: exact Sanskrit headword **dharma**. Smaller corpus — useful as a second opinion against MW. |
 | 10 | `all` | `nara` | `prefix` | — | — | `500` | **Cross-dictionary** (`id<4`): headwords starting with `nara` from mwd + cap + otl, each row tagged `(mwd)`/`(cap)`/`(otl)` with an abbreviation legend. Pahlavi excluded. |
-| 11 | `mwd` | `aTa` | `exact` | — | — | `50` | **Case-folding caveat.** Folds to `ata`, so it matches headwords spelled `ata` *and* `aTa` indistinguishably — the retroflex/dental contrast is lost. |
+| 11 | `mwd` | `aTa` | `exact` | — | — | `50` | **Case-folding caveat.** Both the query term and the `lower(st)` column fold to `ata`, so headwords stored as either `ata` or `aTa` collapse to the same key and are returned indistinguishably — the retroflex/dental contrast is lost. |
 | 12 | `all` | — | — | `king sovereign` | `prefix` | `1000` | Reverse multi-word AND across all three dictionaries: entries whose gloss has a word starting *king* **and** a word starting *sovereign* (royalty/ruler terms), capped at 1000. |
 
 ---
