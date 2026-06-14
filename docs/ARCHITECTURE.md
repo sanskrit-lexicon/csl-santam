@@ -61,7 +61,7 @@ The id→name map is [dat/books](https://github.com/sanskrit-lexicon/csl-santam/
 | 3 | `otl` | Cologne Online Tamil Lexicon | 117,773 | active |
 | 4 | `cpd` | Concise Pahlavi Dictionary | 4,218 | **DISABLED** — `<option value=cpd>` HTML-commented in the form |
 
-`all` = **325,838** entries = mwd + cap + otl. The Pahlavi dictionary (id 4) is present in the data and in [dat/books](https://github.com/sanskrit-lexicon/csl-santam/blob/master/dat/books), but is **excluded from `all`** (the SQL filters `id<4`) and its `<option>` is HTML-commented in [php/index.html](https://github.com/sanskrit-lexicon/csl-santam/blob/master/php/index.html). The entry counts above are hard-coded as display labels in the form.
+`all` = **321,620** entries = mwd + cap + otl (the form's hard-coded "325,838" label counts all four dictionaries; `all` excludes Pahlavi). The Pahlavi dictionary (id 4) is present in the data and in [dat/books](https://github.com/sanskrit-lexicon/csl-santam/blob/master/dat/books), but is **excluded from `all`** (the SQL filters `id<4`) and its `<option>` is HTML-commented in [php/index.html](https://github.com/sanskrit-lexicon/csl-santam/blob/master/php/index.html). The entry counts above are hard-coded as display labels in the form.
 
 ### Build / rebuild
 
@@ -111,7 +111,7 @@ Maps the dictionary code to `($dictnum, $dictname)`:
 
 ### e. Empty-query guard
 
-After `trim($st)` / `trim($en)`, if **neither** field has length > 1, `fehler("No search has been formulated.")`. A single-character query in a field is rejected — at least two characters are required.
+After `trim($st)` / `trim($en)`, if **neither** field has length > 1, `fehler("No search has been formulated.")`. The check is a single OR across both fields: a ≤ 1-char value in one field is **not** rejected on its own — if the other field has length > 1 the search proceeds and the short value is still passed to `where1()` and used in the WHERE clause.
 
 ### f. `compute_where($dictnum, $st, $prst, $en, $pren)`
 
@@ -194,7 +194,7 @@ The query builder exposes a small, strict set of behaviors. They follow directly
   - **suffix** → `TERM\b` — a word ending in TERM (e.g. `pati` matches `gaNapati`, `prajApati`).
   - **substring** → `LIKE '%TERM%'` — TERM anywhere, **no** word boundary (e.g. `indra` also matches `indriya`); the loosest, noisiest mode.
 - **AND only — no OR, no phrase search.** Multiple words in one field are split on spaces and AND-joined; filling both `st` and `en` AND-joins the two condition blocks; the dictionary `id` scope is ANDed in front. So `en=white elephant` requires *both* whole words "white" and "elephant", in any order (not a phrase). Every added word or field tightens results.
-- **Minimum length 2.** A field with ≤ 1 character (after `trim`) is ignored; if neither field has > 1 character the search is rejected with *"No search has been formulated."*
+- **Minimum length 2.** The guard is a single OR across both fields — a ≤ 1-char value is **not** ignored per-field; if the other field qualifies, the short value still goes into the query. If neither field has > 1 character the search is rejected with *"No search has been formulated."*
 - **Hard result cap, no paging.** `maxhits` ∈ {20, 50, 100, 200, 500, 1000}, default 50, applied as `LIMIT (int)$maxhits`. Broad searches silently truncate at the cap; rows are ordered `st COLLATE NOCASE`, so you receive the alphabetically-first N. There is no offset.
 - **Always case-insensitive** — see the HK caveat in [Known quirks](#known-quirks--gotchas).
 
