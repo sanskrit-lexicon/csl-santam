@@ -177,7 +177,8 @@ function where1($var,$varname,$pr) {
  $lowdata = "lower($varname)";  //lower is sqlite function name
  for($ipart=0;$ipart < count($parts); $ipart++) {
   $part = $parts[$ipart];
-  $x = strtolower($part);  // 
+  // SQLi guard: $part is user input; escape ' for the SQLite string literal it is interpolated into below.
+  $x = str_replace("'", "''", strtolower($part));
   if ($pr == "exact") {
     $ans1 ="($lowdata $regexp '$wb$x$we')";
   } else if ($pr == "prefix") {
