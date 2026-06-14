@@ -43,7 +43,7 @@ The `\b` word boundary matters because `en` (and, to a lesser degree, `st`) cont
 | **exact** | `\bTERM\b` | equals TERM as a whole word, bounded on both sides | `st=akAra`, `prst=exact` → matches the headword **akAra** as a standalone word; does **not** match `akAraNa` or `prAkAra`. |
 | **prefix** | `\bTERM` | begins with TERM | `st=agni`, `prst=prefix` → matches **agni, agnihotra, agnipurANa, agniSToma, …** — every headword starting with `agni`. |
 | **suffix** | `TERM\b` | ends with TERM | `st=pati`, `prst=suffix` → matches **pati, gaNapati, prajApati, bhUpati, …** — every headword ending in `pati`. |
-| **substring** | `LIKE '%TERM%'` | contains TERM anywhere, no boundary | `st=indra`, `prst=substring` → matches `indra` anywhere inside the string, including mid-word: **indra, devendra, upendra, mahendra, indriya, …** |
+| **substring** | `LIKE '%TERM%'` | contains TERM anywhere, no boundary | `st=putra`, `prst=substring` → matches `putra` anywhere inside the headword (no word boundary), e.g. the simplex `putra` and compounds where the literal sequence survives. **HK caveat:** vowel-sandhi spells many compounds away from the simplex (e.g. *deva+indra* is stored `devendra`), so a substring of the simplex form will not find its sandhi'd compounds. |
 
 `substring` is the **loosest** mode (matches inside words, no boundaries); `prefix`/`suffix` anchor one side; `exact` anchors both. For an entry that is itself a single word, `exact` ≈ equality. The per-field words are split on `preg_split('/ +/', …)` and **AND-joined**; multiple regexp/LIKE fragments are chained with ` and `.
 
@@ -88,7 +88,7 @@ The id → name map is [dat/books](https://github.com/sanskrit-lexicon/csl-santa
 | `cap` | 2 | Capeller's Sanskrit-English Dictionary | 37,413 | Concise Sanskrit→English; a second opinion against MW. Same HK transliteration as MW. |
 | `otl` | 3 | Cologne Online Tamil Lexicon | 117,773 | Tamil headword lookup with English meanings. **Tamil uses a different HK scheme** — see the reference below. |
 | `cpd` | 4 | Concise Pahlavi Dictionary | 4,218 | **Disabled** — the `<option value=cpd>` is commented out of the form, and `all` excludes it via `id<4`. Not reachable through the UI. |
-| `all` | 0 | mwd + cap + otl | 325,838 | Cross-dictionary search; each result row is tagged `(mwd)`/`(cap)`/`(otl)` and an abbreviation legend is printed. Pahlavi excluded. |
+| `all` | 0 | mwd + cap + otl | 321,620 | Cross-dictionary search; each result row is tagged `(mwd)`/`(cap)`/`(otl)` and an abbreviation legend is printed. Pahlavi excluded. |
 
 > **Code-comment quirk.** In `compute_where()` the comment on the `all` branch calls id 4 the *"Pali dictionary"*. Per [dat/books](https://github.com/sanskrit-lexicon/csl-santam/blob/master/dat/books) and [readme_dev.txt](https://github.com/sanskrit-lexicon/csl-santam/blob/master/readme_dev.txt), id 4 is the **Concise Pahlavi Dictionary** (`cpd`), not Pali. The comment label is wrong; the behavior (excluding id 4 from `all` via `id<4`) is correct regardless.
 
@@ -136,7 +136,7 @@ Search is **always case-insensitive**. Both the data column (`lower(col)`) and t
 
 **HK case caveat — this is lossy.** In Harvard-Kyoto, *letter case is semantic*: `A` = long ā vs `a` = short a; `T` = retroflex ṭ vs `t` = dental t; `S`/`z` vs `s`; `N`/`G`/`J` vs `n`. After case-folding, these distinctions **collapse**:
 
-- `st=ata` and `st=aTa` (exact) match the **same** rows — the retroflex/dental contrast is erased.
+- `st=ata` and `st=aTa` (exact) match the **same** rows — both the term and the `lower(st)` column are lowercased, so the retroflex/dental contrast is erased on both sides.
 - `st=akAra` is folded to `akara`, so it can also match a stored `akara`-style spelling once both are lowercased.
 
 This is the intentional *"not case sensitive"* design advertised on the form, but it conflates genuine phonemic contrasts. To disambiguate you must rely on the surrounding spelling and context, not letter case.
@@ -153,7 +153,7 @@ This is the intentional *"not case sensitive"* design advertised on the form, bu
 4. **AND-only — no OR, no phrase search.** Every extra word or field narrows results; multi-word `en` is unordered AND, not a quoted phrase.
 5. **Hard result cap, no paging.** `maxhits` ≤ 1000, applied as `LIMIT (int)$maxhits`; there is no pagination or offset. Broad searches truncate silently, returning the alphabetically-first N rows (`ORDER BY st COLLATE NOCASE`). To see more, raise `maxhits` (max 1000) or tighten the query.
 6. **Minimum length 2.** A field with ≤ 1 character is ignored; if neither field has > 1 character, the search is rejected with *"No search has been formulated."*
-7. **`substring` lacks word boundaries** — it matches inside words (e.g. `indra` matches `indriya`), which can be noisy; use `exact`/`prefix`/`suffix` for word-anchored matches.
+7. **`substring` lacks word boundaries** — it matches inside longer words, which can be noisy; use `exact`/`prefix`/`suffix` for word-anchored matches.
 8. **`en` encoding edge cases** — the `en` text is force-decoded as Windows-1252 → UTF-8 at display time. The PHP port notes this as a workaround pending a one-time re-import of `ganz.txt`.
 
 ---
@@ -167,14 +167,14 @@ Each row gives the exact form-field values and the expected behavior. For an API
 | 1 | `mwd` | `akAra` | `exact` | — | — | `50` | Exact MW headword **akAra**. Regex `\bakara\b` (case-folded). Returns the headword entry; does **not** return `akAraNa`. |
 | 2 | `mwd` | `agni` | `prefix` | — | — | `100` | All MW headwords starting with `agni`: **agni, agnihotra, agnipurANa, agniSToma, …**. Alphabetically ordered, truncated at 100. |
 | 3 | `mwd` | `pati` | `suffix` | — | — | `200` | All MW headwords ending in `pati`: **pati, gaNapati, prajApati, bhUpati, …** (`pati\b`). |
-| 4 | `mwd` | `indra` | `substring` | — | — | `100` | MW headwords containing `indra` anywhere (`LIKE '%indra%'`): **indra, devendra, upendra, mahendra, indriya, …** — includes mid-word, no boundary. |
+| 4 | `mwd` | `indra` | `substring` | — | — | `100` | MW headwords whose stored string literally contains `indra` (`LIKE '%indra%'`). **HK caveat:** Sanskrit vowel-sandhi spells most *indra*-compounds with `-endra` (e.g. *devendra*, *mahendra*) and `indriya` as `indri-`, so a substring `indra` matches the simplex `indra` but **not** those — an illustration of how substring search over HK can surprise you. |
 | 5 | `mwd` | — | — | `elephant` | `exact` | `200` | Reverse lookup: MW entries whose **description** contains the whole word *elephant* — e.g. **gaja, hastin, nAga, dvipa, …**. Demonstrates the `en` field. |
 | 6 | `mwd` | `gaja` | `exact` | `elephant` | `exact` | `50` | **Both fields → AND.** Only the entry whose headword is **gaja** *and* whose gloss contains *elephant*. Intersects headword + meaning. |
 | 7 | `mwd` | — | — | `white elephant` | `exact` | `50` | **Multi-word `en` → AND, unordered.** Entries whose description contains *both* *white* and *elephant*, in any order — not a phrase. |
-| 8 | `otl` | `amma` | `prefix` | — | — | `50` | **Tamil dictionary.** Online Tamil Lexicon headwords beginning with `amma` (Tamil HK scheme — `jn`/`n2` rules apply). Returns Tamil entries with English meanings. |
+| 8 | `otl` | `amma` | `prefix` | — | — | `50` | **Tamil dictionary.** Online Tamil Lexicon headwords beginning with `amma` (Tamil HK scheme; `amma` uses no special Tamil letters, so it is a plain prefix match). Returns Tamil entries with English meanings. |
 | 9 | `cap` | `dharma` | `exact` | — | — | `20` | Capeller's concise dictionary: exact Sanskrit headword **dharma**. Smaller corpus — useful as a second opinion against MW. |
 | 10 | `all` | `nara` | `prefix` | — | — | `500` | **Cross-dictionary** (`id<4`): headwords starting with `nara` from mwd + cap + otl, each row tagged `(mwd)`/`(cap)`/`(otl)` with an abbreviation legend. Pahlavi excluded. |
-| 11 | `mwd` | `aTa` | `exact` | — | — | `50` | **Case-folding caveat.** Folds to `ata`, so it matches headwords spelled `ata` *and* `aTa` indistinguishably — the retroflex/dental contrast is lost. |
+| 11 | `mwd` | `aTa` | `exact` | — | — | `50` | **Case-folding caveat.** Both the query term and the `lower(st)` column fold to `ata`, so headwords stored as either `ata` or `aTa` collapse to the same key and are returned indistinguishably — the retroflex/dental contrast is lost. |
 | 12 | `all` | — | — | `king sovereign` | `prefix` | `1000` | Reverse multi-word AND across all three dictionaries: entries whose gloss has a word starting *king* **and** a word starting *sovereign* (royalty/ruler terms), capped at 1000. |
 
 ---

@@ -11,7 +11,7 @@ The four dictionaries and their entry counts:
 | Tamil Lexicon | 3 | `otl` | Cologne Online Tamil Lexicon | 117,773 | active |
 | Pahlavi | 4 | `cpd` | Concise Pahlavi Dictionary | 4,218 | **disabled** |
 
-`all` searches mwd + cap + otl combined = **325,838** entries. The Concise Pahlavi Dictionary (id 4) is present in the data and in [dat/books](https://github.com/sanskrit-lexicon/csl-santam/blob/master/dat/books), but its `<option value=cpd>` is HTML-commented out of the form and it is excluded from `all` (the SQL filters `id<4`), so it is not reachable through the UI.
+`all` searches mwd + cap + otl combined = **321,620** entries (the form advertises "325,838", which counts all four dictionaries including the disabled Pahlavi). The Concise Pahlavi Dictionary (id 4) is present in the data and in [dat/books](https://github.com/sanskrit-lexicon/csl-santam/blob/master/dat/books), but its `<option value=cpd>` is HTML-commented out of the form and it is excluded from `all` (the SQL filters `id<4`), so it is not reachable through the UI.
 
 ---
 
@@ -96,12 +96,12 @@ Sibilants:   z(ś) S(ṣ) s
 Aspirate:    h
 ```
 
-**Tamil HK (otl)** differs in ordering and a few letters — palatal n is written `jn`, alveolar n is `n2`; otherwise type Tamil text as though standard diacritical marks had been dropped:
+**Tamil HK (otl)** differs in ordering and a few letters — palatal n is `n^` (ASCII `jn`), alveolar n is `n_` (ASCII `n2`); otherwise type Tamil text as though standard diacritical marks had been dropped:
 
 ```
 Vowels:      a A i I u U e E ai o O au
-Consonants:  H k g c jn T N t n p m y r l v z L R n2
-Grantha:     j S s h kS
+Consonants:  H k g c n^/jn T N t n p m y r l v z L R n_/n2
+Grantha:     j [C (SRI)] S s h kS
 ```
 
 > **Case-insensitivity caveat.** Both the data column and the query term are lowercased before matching, so HK case distinctions collapse: `aTa` folds to `ata`, conflating retroflex `T` with dental `t`; `A` (long ā) with `a`; and the three sibilants `z`/`S`/`s` with each other. This is the intentional "not case sensitive" behavior advertised in the form, but it erases genuine phonemic contrasts — disambiguate by spelling/context, not case.
