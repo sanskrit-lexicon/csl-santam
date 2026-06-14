@@ -94,7 +94,9 @@ echo "</body></html>";
 functions
 */
 function fehler($msg) {
- $ans = "<h4>$msg</h4>\n</body></html>\n";
+ // Escape: $msg may embed user input (e.g. the unknown dictionary code),
+ // which would otherwise be reflected XSS. All fehler messages are plain text.
+ $ans = "<h4>" . htmlspecialchars($msg, ENT_QUOTES) . "</h4>\n</body></html>\n";
  echo $ans;
  exit;
 }
