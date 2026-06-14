@@ -41,7 +41,7 @@ if ($dbg) {
 $befehl="select id,st,en from tamil where $where order by st collate nocase";
 // put in LIMIT
 
-$befehl .= " LIMIT $maxhits";
+$befehl .= " LIMIT " . (int)$maxhits;  // SQLi guard: $maxhits is $_REQUEST input
 if ($dbg) {
  echo "befehl: $befehl<br>\n";
 }
