@@ -23,17 +23,17 @@ The search backend [php/recherche.php](https://github.com/sanskrit-lexicon/csl-s
 
 ### Fixed
 
-- **Misleading source comment in `compute_where()`.** The `all`-branch comment called the excluded `id=4` dictionary "Pali"; it is the Concise **Pahlavi** Dictionary (`cpd`), per [dat/books](https://github.com/sanskrit-lexicon/csl-santam/blob/master/dat/books). Comment-only — the behavior (`id<4` excludes it from `all`) was already correct.
-- **Unclamped `maxhits`.** A missing/empty/`0`/negative `maxhits` (e.g. from a direct/API caller) previously produced `LIMIT 0` or a SQLite error. `maxhits` now defaults to `50` and clamps to `1000` when out of range, mirroring the search form's own default/max ([php/index.html](https://github.com/sanskrit-lexicon/csl-santam/blob/master/php/index.html)).
-- **Unescaped `%`/`_` in the `substring` LIKE branch of `where1()`.** A literal `%` or `_` in a query was silently interpreted as a SQL `LIKE` wildcard/single-char-match, giving unpredictable (though not unsafe — the `'` was already doubled) results. The term is now backslash-escaped (`\`, `%`, `_`) and the fragment carries an explicit `ESCAPE '\'` clause, so literal `%`/`_` match themselves.
+- **Misleading source comment in `compute_where()`.** The `all`-branch comment called the excluded `id=4` dictionary "Pali"; it is the Concise **Pahlavi** Dictionary (`cpd`), per [dat/books](https://github.com/sanskrit-lexicon/csl-santam/blob/master/dat/books). Comment-only — the behavior (`id<4` excludes it from `all`) was already correct. ([PR #11](https://github.com/sanskrit-lexicon/csl-santam/pull/11))
+- **Unclamped `maxhits`.** A missing/empty/`0`/negative `maxhits` (e.g. from a direct/API caller) previously produced `LIMIT 0` or a SQLite error. `maxhits` now defaults to `50` and clamps to `1000` when out of range, mirroring the search form's own default/max ([php/index.html](https://github.com/sanskrit-lexicon/csl-santam/blob/master/php/index.html)). ([PR #11](https://github.com/sanskrit-lexicon/csl-santam/pull/11))
+- **Unescaped `%`/`_` in the `substring` LIKE branch of `where1()`.** A literal `%` or `_` in a query was silently interpreted as a SQL `LIKE` wildcard/single-char-match, giving unpredictable (though not unsafe — the `'` was already doubled) results. The term is now backslash-escaped (`\`, `%`, `_`) and the fragment carries an explicit `ESCAPE '\'` clause, so literal `%`/`_` match themselves. ([PR #11](https://github.com/sanskrit-lexicon/csl-santam/pull/11))
 
 ### Documentation
 
 - Deepened the auto-generated `README.md` stub (previously only "Runtime: Perl" plus generic 0-open-issue tables) into a substantive description of the search frontend, the four lexica and their entry counts, the HK input requirement, the request parameters, and the Perl/PHP parity. The stale auto-generated issue tables were removed.
 - Added/maintained `.ai_state.md` as the session journal per org convention, with the fixed section structure (`# Project Objective`, `## ➡️ Next Steps (Queue)`, `## 🚧 Current Work-In-Progress (WIP)`, `## 🧠 Dev Notes & Hypotheses (Bugs, ideas, context)`, `## ✅ Completed (Recent only)`).
 - Added `docs/ROADMAP_2026_2027.md` (4-wave roadmap, 4 maintainer rulings).
-- **Retired `readme_dev.txt`** (self-described as "somewhat obsolete as of 12/27/2022"). Its still-accurate content (Perl/PHP parity, the `en` Windows-1252→UTF-8 conversion, the data path) was already folded into `docs/ARCHITECTURE.md`; all cross-references were repointed there.
-- Added `CODE_OF_CONDUCT.md`, `SECURITY.md`, and `.pre-commit-config.yaml`; turned on branch protection for `master`.
+- **Retired `readme_dev.txt`** (self-described as "somewhat obsolete as of 12/27/2022"). Its still-accurate content (Perl/PHP parity, the `en` Windows-1252→UTF-8 conversion, the data path) was already folded into `docs/ARCHITECTURE.md`; all cross-references were repointed there. ([PR #11](https://github.com/sanskrit-lexicon/csl-santam/pull/11))
+- Added `CODE_OF_CONDUCT.md`, `SECURITY.md`, and `.pre-commit-config.yaml`; turned on branch protection for `master`. ([PR #11](https://github.com/sanskrit-lexicon/csl-santam/pull/11))
 
 ### Notes
 
