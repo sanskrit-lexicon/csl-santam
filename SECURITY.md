@@ -6,7 +6,7 @@ csl-santam is a PHP/Perl web frontend ([php/recherche.php](https://github.com/sa
 2. **Supply-chain risk** in CI dependencies (currently just the `dependabot/fetch-metadata` GitHub Action).
 3. **Credential leakage** in committed files.
 
-**Current automated scanning:** Dependabot is configured (`.github/dependabot.yml`, auto-merge workflow). GitHub code scanning (CodeQL) is **not yet configured** for this repository as of `0.1.0` — treat new PHP/Perl changes to the request pipeline as unscanned until that changes.
+**Current automated scanning:** Dependabot is configured (`.github/dependabot.yml`, auto-merge workflow). GitHub code scanning (CodeQL) has **no PHP or Perl analyzer** and would scan nothing in this repo, so it is deliberately not deployed here (the same gap that motivated `csl-websanlexicon`'s Semgrep adoption). Instead, [`.github/workflows/semgrep.yml`](https://github.com/sanskrit-lexicon/csl-santam/blob/master/.github/workflows/semgrep.yml) runs Semgrep's `p/php` + `p/security-audit` rulesets (advisory, uploads SARIF to the Security tab) against [php/recherche.php](https://github.com/sanskrit-lexicon/csl-santam/blob/master/php/recherche.php), the hardened primary implementation.
 
 ## Reporting a vulnerability
 
