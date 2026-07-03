@@ -80,7 +80,7 @@ The id → name map lives in [dat/books](https://github.com/sanskrit-lexicon/csl
 
 ## Transliteration
 
-All input and stored data is **Harvard-Kyoto (HK) single-byte ASCII romanization**, not Unicode Devanagari or Tamil script — type romanized, e.g. `akAra` (Monier-Williams markup `%{…}` may appear in stored text). In HK, **letter case is semantic** (capitals mark long vowels and retroflex/sibilant distinctions).
+Stored data and the backend are **Harvard-Kyoto (HK) single-byte ASCII romanization**, not Unicode Devanagari or Tamil script — e.g. `akAra` (Monier-Williams markup `%{…}` may appear in stored text). In HK, **letter case is semantic** (capitals mark long vowels and retroflex/sibilant distinctions). Since Wave 2, the **form** also accepts Devanagari or IAST for the Sanskrit dictionaries and auto-converts to HK before submit (not for `otl`/Tamil, which uses a different HK-like scheme) — see [docs/ARCHITECTURE.md](https://github.com/sanskrit-lexicon/csl-santam/blob/master/docs/ARCHITECTURE.md#client-side-transliteration-input-wave-2).
 
 **Sanskrit HK (mwd, cap):**
 

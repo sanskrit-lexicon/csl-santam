@@ -2,6 +2,8 @@
 <html><head>
 <!-- <title>Sanskrit, Tamil and Pahlavi Dictionaries</title> -->
 <title>Sanskrit and Tamil Dictionaries</title>
+<script type="text/javascript" src="js/vendor/sanskrit-util.global.js"></script>
+<script type="text/javascript" src="js/hk-input.js"></script>
 
 </head>
 <body bgcolor="#ffffff">
@@ -21,7 +23,9 @@
 </select></td></tr>
 
 <tr><td bgcolor="#cccccc">Word in Primary Language<br>(Sanskrit,
-Tamil<!--, Pahlavi-->):</td>
+Tamil<!--, Pahlavi-->):<br>
+<small>(Devanagari or IAST auto-converts to HK on Sanskrit dictionaries;
+type Tamil directly in HK-with-exceptions, see below)</small></td>
 <td bgcolor="#cccccc"><input name=st size=30>
 <select name=prst>
 <option value=exact selected>exact
@@ -49,6 +53,22 @@ Tamil<!--, Pahlavi-->):</td>
 <input type=reset></td></td></tr>
 
 </table></form>
+
+<script type="text/javascript">
+// Wave 2 (docs/ROADMAP_2026_2027.md): convert the primary-language field to HK just
+// before submit, unless the Cologne Online Tamil Lexicon is selected (its HK-like
+// scheme differs -- see js/hk-input.js and docs/ARCHITECTURE.md).
+(function () {
+  var form = document.forms[0];
+  var stField = form ? form.elements['st'] : null;
+  var dictSelect = form ? form.elements['dictionary'] : null;
+  if (!form || !stField || !dictSelect || !window.CslSantamHkInput) { return; }
+  form.addEventListener('submit', function () {
+    if (dictSelect.value === 'otl') { return; }
+    stField.value = window.CslSantamHkInput.toHK(stField.value);
+  });
+})();
+</script>
 
 The search is not case sensitive.
 If you type words into both fields or several English words
