@@ -154,7 +154,7 @@ Because the `st`/`en` corpus is single-byte ASCII HK transliteration (not multib
 
 ## Known quirks
 
-- **The "Pali" code comment means Pahlavi.** In `compute_where()` the `all`-branch comment reads "exclude the 4th (Pali dictionary)" — this wording is wrong: id 4 is the **Concise Pahlavi Dictionary** (`cpd`), per [dat/books](https://github.com/sanskrit-lexicon/csl-santam/blob/master/dat/books) and [readme_dev.txt](https://github.com/sanskrit-lexicon/csl-santam/blob/master/readme_dev.txt). The behavior (excluding id 4 from `all`) is correct regardless of the mislabel.
+- **The "Pali" code comment meant Pahlavi — fixed in `0.1.0`.** In `compute_where()` the `all`-branch comment previously read "exclude the 4th (Pali dictionary)"; id 4 is the **Concise Pahlavi Dictionary** (`cpd`), per [dat/books](https://github.com/sanskrit-lexicon/csl-santam/blob/master/dat/books), and the comment now says so. The behavior (excluding id 4 from `all`) was correct throughout.
 - **`sanitize_REQUEST_all()` is effectively a no-op** — `FILTER_UNSAFE_RAW` performs no filtering. Input safety comes from the point-of-use escaping in the PR #4–#7 hardening, not from this function.
 - **Variable reuse.** The result loop rebinds `$id`/`$st`/`$en` from `list($id,$st,$en) = $result;`, shadowing the request-scoped variables — harmless, but a readability trap.
 
@@ -169,8 +169,10 @@ The PHP backend was hardened on 2026-06-14, escaping user input at the point of 
 | [#4](https://github.com/sanskrit-lexicon/csl-santam/pull/4) | Reflected XSS | `fehler()` error output wrapped in `htmlspecialchars($msg, ENT_QUOTES)` |
 | [#5](https://github.com/sanskrit-lexicon/csl-santam/pull/5) | SQL injection | `where1()` search term escaped for the SQLite string literal (`'` → `''`) |
 | [#6](https://github.com/sanskrit-lexicon/csl-santam/pull/6) | SQL injection | `maxhits` cast to `(int)` before the `LIMIT` clause |
-| [#7](https://github.com/sanskrit-lexicon/csl-santam/pull/7) | Regex injection / ReDoS | regexp-branch term `preg_quote()`d before reaching `_sqliteRegexp` (LIKE branch unchanged) |
+| [#7](https://github.com/sanskrit-lexicon/csl-santam/pull/7) | Regex injection / ReDoS | regexp-branch term `preg_quote()`d before reaching `_sqliteRegexp` |
 | [#3](https://github.com/sanskrit-lexicon/csl-santam/pull/3) | Dependencies | bump `dependabot/fetch-metadata` 2 → 3 |
+
+`0.1.0` also fixed a LIKE-branch predictability gap (not injection): the `substring` branch now backslash-escapes `%`/`_` in the search term and carries an `ESCAPE '\'` clause, so a literal `%`/`_` in an HK query matches itself instead of acting as a wildcard.
 
 See [CHANGELOG.md](https://github.com/sanskrit-lexicon/csl-santam/blob/master/CHANGELOG.md) for the running record.
 
@@ -188,8 +190,9 @@ See [CHANGELOG.md](https://github.com/sanskrit-lexicon/csl-santam/blob/master/CH
 - [sqlite/tamil.sqlite](https://github.com/sanskrit-lexicon/csl-santam/blob/master/sqlite/tamil.sqlite) — the built database.
 - [CDSL.pdf](https://github.com/sanskrit-lexicon/csl-santam/blob/master/CDSL.pdf) — Cologne Digital Sanskrit Lexicon project report.
 - [CLAUDE.md](https://github.com/sanskrit-lexicon/csl-santam/blob/master/CLAUDE.md) — repo-specific agent guidance.
-- [readme_dev.txt](https://github.com/sanskrit-lexicon/csl-santam/blob/master/readme_dev.txt) — developer notes (self-described as "somewhat obsolete as of 12/27/2022").
 - [LICENSE.md](https://github.com/sanskrit-lexicon/csl-santam/blob/master/LICENSE.md) — license.
+
+(`readme_dev.txt` was retired in `0.1.0`; its still-accurate content lives on in [docs/ARCHITECTURE.md](https://github.com/sanskrit-lexicon/csl-santam/blob/master/docs/ARCHITECTURE.md).)
 
 ---
 

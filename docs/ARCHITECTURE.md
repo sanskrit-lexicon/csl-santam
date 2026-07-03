@@ -192,10 +192,10 @@ The query builder exposes a small, strict set of behaviors. They follow directly
   - **exact** → `\bTERM\b` — TERM as a whole bounded word; `akAra` does **not** match `akAraNa` or `prAkAra`.
   - **prefix** → `\bTERM` — a word starting with TERM (e.g. `agni` matches `agni`, `agnihotra`, `agniSToma`).
   - **suffix** → `TERM\b` — a word ending in TERM (e.g. `pati` matches `gaNapati`, `prajApati`).
-  - **substring** → `LIKE '%TERM%'` — TERM anywhere, **no** word boundary (e.g. `indra` also matches `indriya`); the loosest, noisiest mode.
+  - **substring** → `LIKE '%TERM%' ESCAPE '\'` — TERM anywhere, **no** word boundary (e.g. `indra` also matches `indriya`); the loosest, noisiest mode. Since `0.1.0`, a literal `%`/`_`/`\` in TERM is backslash-escaped before it reaches the `LIKE` pattern (`ESCAPE '\'` clause), so a literal `%` in an HK query matches itself instead of silently acting as a wildcard.
 - **AND only — no OR, no phrase search.** Multiple words in one field are split on spaces and AND-joined; filling both `st` and `en` AND-joins the two condition blocks; the dictionary `id` scope is ANDed in front. So `en=white elephant` requires *both* whole words "white" and "elephant", in any order (not a phrase). Every added word or field tightens results.
 - **Minimum length 2.** The guard is a single OR across both fields — a ≤ 1-char value is **not** ignored per-field; if the other field qualifies, the short value still goes into the query. If neither field has > 1 character the search is rejected with *"No search has been formulated."*
-- **Hard result cap, no paging.** `maxhits` ∈ {20, 50, 100, 200, 500, 1000}, default 50, applied as `LIMIT (int)$maxhits`. Broad searches silently truncate at the cap; rows are ordered `st COLLATE NOCASE`, so you receive the alphabetically-first N. There is no offset.
+- **Hard result cap, no paging.** `maxhits` ∈ {20, 50, 100, 200, 500, 1000}, default 50, applied as `LIMIT (int)$maxhits`. Since `0.1.0`, a missing/`0`/negative `maxhits` (e.g. from a direct/API caller) defaults to `50` and a value above `1000` clamps to `1000`, mirroring the form's own default/max — this can no longer produce `LIMIT 0` or a SQLite error. Broad searches silently truncate at the cap; rows are ordered `st COLLATE NOCASE`, so you receive the alphabetically-first N. There is no offset.
 - **Always case-insensitive** — see the HK caveat in [Known quirks](#known-quirks--gotchas).
 
 ---
@@ -217,7 +217,7 @@ Still in [php/recherche.php](https://github.com/sanskrit-lexicon/csl-santam/blob
 
 ## Perl vs PHP
 
-Per [readme_dev.txt](https://github.com/sanskrit-lexicon/csl-santam/blob/master/readme_dev.txt) (self-flagged "somewhat obsolete as of 12/27/2022"):
+Per the now-retired `readme_dev.txt` (self-flagged "somewhat obsolete as of 12/27/2022"; its still-accurate content is folded in here — see [Repository conventions](#repository-conventions)):
 
 - The PHP version is "a **very close port** of the perl version."
 - The Perl backend is `perl/recherche.pl` + `perl/cgi-include2.pl`; the entry form is `perl/index.html`. Shebang `#!"C:\xampp\perl\bin\perl.exe"` (XAMPP CGI). Modules sit next to `index.html`, not in `cgi-bin`.
@@ -260,15 +260,17 @@ Hardened on `master` on 2026-06-14. Four defense layers, each escaping at the po
 | Output encoding | Reflected XSS | `fehler($msg)` | `htmlspecialchars($msg, ENT_QUOTES)`. `$msg` can embed user input — e.g. the unknown dictionary code in `dictionary_info`'s `"No dictonary…$dictionary"` — which was reflected unescaped. ([PR #4](https://github.com/sanskrit-lexicon/csl-santam/pull/4)) |
 | SQLite-literal escaping | SQL injection | `where1()` (both branches) | Search term escaped for the SQLite string literal via `str_replace("'", "''", …)`: `$x` for the LIKE branch, inside `$xr` for the regexp branches (single-quote → doubled single-quote). ([PR #5](https://github.com/sanskrit-lexicon/csl-santam/pull/5)) |
 | `LIMIT` cast | SQL injection | top-level `LIMIT` assembly | `$maxhits` (raw `$_REQUEST`) cast: `" LIMIT " . (int)$maxhits;` before concatenation into `$befehl`. ([PR #6](https://github.com/sanskrit-lexicon/csl-santam/pull/6)) |
-| Regex-metachar quoting | Regex injection / ReDoS | `where1()` regexp branches → `_sqliteRegexp()` | The regexp-branch term is `preg_quote($part_l, '/')`d (inside `$xr`) before reaching `_sqliteRegexp`'s `preg_match`, neutralizing PCRE metacharacters and catastrophic-backtracking patterns (e.g. `(a+)+`) that would run per row. The `$wb`/`$we` `\b` anchors are intentionally left active. The **LIKE branch is unchanged**. ([PR #7](https://github.com/sanskrit-lexicon/csl-santam/pull/7)) |
+| Regex-metachar quoting | Regex injection / ReDoS | `where1()` regexp branches → `_sqliteRegexp()` | The regexp-branch term is `preg_quote($part_l, '/')`d (inside `$xr`) before reaching `_sqliteRegexp`'s `preg_match`, neutralizing PCRE metacharacters and catastrophic-backtracking patterns (e.g. `(a+)+`) that would run per row. The `$wb`/`$we` `\b` anchors are intentionally left active. ([PR #7](https://github.com/sanskrit-lexicon/csl-santam/pull/7)) |
 
 These guards do **not** change end-user search semantics — user-typed regex/SQL metacharacters are now treated as literal text. A fifth, dependency-hygiene PR bumped `dependabot/fetch-metadata` 2→3 ([PR #3](https://github.com/sanskrit-lexicon/csl-santam/pull/3)).
+
+**`0.1.0` LIKE-branch predictability fix (not a security issue).** The `substring` branch's `LIKE '%TERM%'` previously left `%`/`_` as live SQL wildcards inside a user's TERM — not an injection (the `'` was already doubled), but a correctness/predictability gap: a literal `%` in an HK query silently became a wildcard. `where1()`'s LIKE branch now backslash-escapes `\`, `%`, and `_` in the term before quote-doubling, and the fragment carries an explicit `ESCAPE '\'` clause, so literal `%`/`_` match themselves.
 
 ---
 
 ## Known quirks / gotchas
 
-1. **"Pali" comment means PAHLAVI.** In `compute_where()` the comment on the `all` branch reads `// 'all', exclude the 4th (Pali dictionary)` with `where = "id<4"`. The "Pali" wording is **wrong**: id 4 is the **Concise Pahlavi Dictionary** (`cpd`), per [dat/books](https://github.com/sanskrit-lexicon/csl-santam/blob/master/dat/books) and [readme_dev.txt](https://github.com/sanskrit-lexicon/csl-santam/blob/master/readme_dev.txt) (which correctly calls id 4 "Pahlavi"/"unused"). The **code behavior** (exclude id 4 from `all`) is correct regardless of the mislabel.
+1. **"Pali" comment mislabel — fixed.** In `compute_where()` the comment on the `all` branch previously read `// 'all', exclude the 4th (Pali dictionary)` with `where = "id<4"`. Id 4 is the **Concise Pahlavi Dictionary** (`cpd`), per [dat/books](https://github.com/sanskrit-lexicon/csl-santam/blob/master/dat/books); the comment now reads "Pahlavi" (release `0.1.0`). The **code behavior** (exclude id 4 from `all`) was correct throughout — only the comment wording was wrong.
 
 2. **Case-folding over case-semantic HK.** The search lowercases both data (`lower(col)`) and query (`strtolower`), but in Harvard-Kyoto **letter case is semantic**: `A` = long ā, `T` = retroflex ṭ, `R` = vocalic ṛ, `S`/`z` vs `s` = the sibilants, `N`/`G`/`J` vs `n`. Folding case therefore **conflates HK distinctions** — `ata` and `aTa` (exact) match the same lowered string, as do `a`/`A`, `t`/`T`. This is the intentional "not case sensitive" behavior advertised in the form, but it collapses genuine phonemic contrasts; disambiguation must come from surrounding spelling/context, not letter case.
 
@@ -277,8 +279,6 @@ These guards do **not** change end-user search semantics — user-typed regex/SQ
 4. **`substring` mode lacks word boundaries.** It matches inside words (e.g. `indra` matches `indriya`), unlike the `\b`-anchored `exact`/`prefix`/`suffix` regexp modes — noisier by design.
 
 5. **Variable reuse.** The result loop rebinds `$id`/`$st`/`$en` from `list($id,$st,$en) = $result;`, shadowing the request-scoped `$st`/`$en` — harmless but a readability trap.
-
-6. **Auto-generated README stub.** The repo's `README.md` is a Cologne tooling-runbook stub (says only "Runtime: Perl", generic 0-open-issue tables); [readme_dev.txt](https://github.com/sanskrit-lexicon/csl-santam/blob/master/readme_dev.txt) is the better existing source but is self-described as "somewhat obsolete as of 12/27/2022." See [Repository conventions](#repository-conventions) for the de-stubbing rule.
 
 ---
 
@@ -296,7 +296,7 @@ These guards do **not** change end-user search semantics — user-typed regex/SQ
 | [sqlite/redo.bat](https://github.com/sanskrit-lexicon/csl-santam/blob/master/sqlite/redo.bat) | Rebuild script (XAMPP `sqlite3`) |
 | `sqlite/tamil.sqlite` | Built database |
 | `CDSL.pdf` | Cologne Digital Sanskrit Lexicon project report |
-| `README.md`, `CLAUDE.md`, [readme_dev.txt](https://github.com/sanskrit-lexicon/csl-santam/blob/master/readme_dev.txt), `LICENSE.md` | Docs |
+| `README.md`, `CLAUDE.md`, `LICENSE.md` | Docs (`readme_dev.txt` retired in `0.1.0` — its content lives on in [Perl vs PHP](#perl-vs-php) and [Repository conventions](#repository-conventions) below) |
 
 ---
 

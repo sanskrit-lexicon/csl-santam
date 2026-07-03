@@ -90,7 +90,7 @@ The id → name map is [dat/books](https://github.com/sanskrit-lexicon/csl-santa
 | `cpd` | 4 | Concise Pahlavi Dictionary | 4,218 | **Disabled** — the `<option value=cpd>` is commented out of the form, and `all` excludes it via `id<4`. Not reachable through the UI. |
 | `all` | 0 | mwd + cap + otl | 321,620 | Cross-dictionary search; each result row is tagged `(mwd)`/`(cap)`/`(otl)` and an abbreviation legend is printed. Pahlavi excluded. |
 
-> **Code-comment quirk.** In `compute_where()` the comment on the `all` branch calls id 4 the *"Pali dictionary"*. Per [dat/books](https://github.com/sanskrit-lexicon/csl-santam/blob/master/dat/books) and [readme_dev.txt](https://github.com/sanskrit-lexicon/csl-santam/blob/master/readme_dev.txt), id 4 is the **Concise Pahlavi Dictionary** (`cpd`), not Pali. The comment label is wrong; the behavior (excluding id 4 from `all` via `id<4`) is correct regardless.
+> **Code-comment quirk — fixed in `0.1.0`.** In `compute_where()` the comment on the `all` branch used to call id 4 the *"Pali dictionary"*. Per [dat/books](https://github.com/sanskrit-lexicon/csl-santam/blob/master/dat/books), id 4 is the **Concise Pahlavi Dictionary** (`cpd`), and the comment now says so. The behavior (excluding id 4 from `all` via `id<4`) was correct throughout.
 
 ---
 
@@ -199,4 +199,4 @@ The backend was hardened on 2026-06-14. These fixes do **not** change end-user s
 - [sqlite/ganz.txt](https://github.com/sanskrit-lexicon/csl-santam/blob/master/sqlite/ganz.txt) — source data, tab-delimited (~25 MB).
 - [sqlite/def.sql](https://github.com/sanskrit-lexicon/csl-santam/blob/master/sqlite/def.sql) — `tamil` table schema and import.
 - [sqlite/redo.bat](https://github.com/sanskrit-lexicon/csl-santam/blob/master/sqlite/redo.bat) — database rebuild script (XAMPP `sqlite3`).
-- [readme_dev.txt](https://github.com/sanskrit-lexicon/csl-santam/blob/master/readme_dev.txt) — developer notes (self-described as *"somewhat obsolete as of 12/27/2022"*).
+- [docs/ARCHITECTURE.md](https://github.com/sanskrit-lexicon/csl-santam/blob/master/docs/ARCHITECTURE.md) — deep technical reference (`readme_dev.txt` was retired in `0.1.0`; its content lives on here).
