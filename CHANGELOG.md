@@ -6,7 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 csl-santam is a web-frontend port of the Cologne ["MWScan tamil"](http://www.sanskrit-lexicon.uni-koeln.de/scans/MWScan/tamil/index.html) multi-dictionary search. The form at [php/index.html](https://github.com/sanskrit-lexicon/csl-santam/blob/master/php/index.html) POSTs to the backend [php/recherche.php](https://github.com/sanskrit-lexicon/csl-santam/blob/master/php/recherche.php), which queries one combined SQLite table `tamil(id, st, en)` ([sqlite/def.sql](https://github.com/sanskrit-lexicon/csl-santam/blob/master/sqlite/def.sql)) spanning four lexica: Monier-Williams (`mwd`, 166,434 entries), Capeller (`cap`, 37,413), the Cologne Online Tamil Lexicon (`otl`, 117,773), and the Concise Pahlavi Dictionary (`cpd`, 4,218 — disabled in the UI and excluded from `all` via `id<4`). `all` searches mwd + cap + otl = 321,620 entries (the form's "325,838" label counts all four, including the disabled Pahlavi). Headword input is Harvard-Kyoto (HK) ASCII romanization, not Unicode script. Two implementations exist: the original Perl CGI (`perl/`) and a close PHP port (`php/`). Default branch: `master`. Maintainer: Thomas Malten (th.malten@uni-koeln.de).
 
-## [Unreleased] — 2026-06-14
+## [Unreleased]
+
+Nothing yet.
+
+## [0.1.0] — 2026-06-14
 
 ### Security
 
@@ -39,4 +43,5 @@ The search backend [php/recherche.php](https://github.com/sanskrit-lexicon/csl-s
 
 - **Perl → PHP parity.** The PHP backend is a close port of `perl/recherche.pl` + `perl/cgi-include2.pl`. The one documented divergence: the PHP `maxhits` dropdown offers `20 / 50 / 100 / 200 / 500 / 1000` (default `50`) and drops the Perl original's `all` option ([php/index.html](https://github.com/sanskrit-lexicon/csl-santam/blob/master/php/index.html)). The `en` field is re-encoded `iconv("Windows-1252","UTF-8", …)` per row at render time in the PHP port (the Perl code does this conversion itself).
 
-[Unreleased]: https://github.com/sanskrit-lexicon/csl-santam/commits/master
+[Unreleased]: https://github.com/sanskrit-lexicon/csl-santam/compare/v0.1.0...master
+[0.1.0]: https://github.com/sanskrit-lexicon/csl-santam/releases/tag/v0.1.0
