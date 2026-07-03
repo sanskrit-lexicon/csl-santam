@@ -48,6 +48,11 @@ type Tamil directly in HK-with-exceptions, see below)</small></td>
 <option>20<option selected="selected">50<option>100<option>200<option>500
 <option>1000<!--<option value=1000000>all--></select> entries</td></tr>
 
+<tr><td bgcolor="#cccccc">Case-sensitive search?<br>
+<small>(HK letter case is phonemic: A=&#257;, T=&#7789;, S=&#7779; vs s.
+Off by default.)</small></td>
+<td bgcolor="#cccccc"><input type=checkbox name=case_sensitive value=1> Case-sensitive</td></tr>
+
 <tr><td bgcolor="#cccccc">Ready?</td>
 <td bgcolor="#cccccc"><input type=submit value="Start search">
 <input type=reset></td></td></tr>
@@ -70,7 +75,8 @@ type Tamil directly in HK-with-exceptions, see below)</small></td>
 })();
 </script>
 
-The search is not case sensitive.
+The search is not case sensitive by default; check "Case-sensitive search"
+above to opt in.
 If you type words into both fields or several English words
 then only entries fulfilling all conditions are shown.</ul>
 

@@ -21,6 +21,7 @@ Endpoint: `POST` to [php/recherche.php](https://github.com/sanskrit-lexicon/csl-
 | `prst` | dropdown | `exact`, `prefix`, `suffix`, `substring` | `exact` | Match mode applied to **`st`**. |
 | `en` | text box | English word(s); space-separated | empty | **English-description** search (searches the entry/gloss text). |
 | `pren` | dropdown | `exact`, `prefix`, `suffix`, `substring` | `exact` | Match mode applied to **`en`**. |
+| `case_sensitive` | checkbox | `1` (absent when unchecked) | absent (case-insensitive) | Since `0.1.0`+Wave 2: opt into HK's phonemic letter case (`A`/`a`, `T`/`t`, `S`/`s`/`z` stop conflating) for **both** `st` and `en`. |
 | `maxhits` | dropdown | `20`, `50`, `100`, `200`, `500`, `1000` | `50` | Row cap → `LIMIT (int)$maxhits`. (The Perl original also offered `all`; the PHP port dropped it.) |
 
 **Input validation gate.** The backend requires at least one of `st`/`en` to have length > 1 after `trim`; otherwise it returns *"No search has been formulated."* A single-character query in a field is ignored — you must type at least two characters.
@@ -33,8 +34,9 @@ Endpoint: `POST` to [php/recherche.php](https://github.com/sanskrit-lexicon/csl-
 
 Match modes are applied **per field** — `prst` governs `st`, `pren` governs `en`. Internally there are two engines:
 
-- **exact / prefix / suffix** route through a custom SQLite `regexp` UDF (`_sqliteRegexp` → `preg_match('/'.$pattern.'/i', $string)`), with `\b` word-boundary anchors. The user term is `preg_quote`d, so any typed metacharacters are treated as literal text. Both the data column (`lower(col)`) and the term (`strtolower`) are lowercased → **case-insensitive**.
-- **substring** uses native SQL `LIKE '%term%'` — case-insensitive, no word boundaries.
+- **exact / prefix / suffix** route through a custom SQLite `regexp` UDF (`_sqliteRegexp` → `preg_match('/'.$pattern.'/i', $string)`), with `\b` word-boundary anchors. The user term is `preg_quote`d, so any typed metacharacters are treated as literal text. Both the data column (`lower(col)`) and the term (`strtolower`) are lowercased → **case-insensitive by default**.
+- **substring** uses native SQL `LIKE '%term%'` — case-insensitive by default, no word boundaries.
+- **Case-sensitive opt-in (`case_sensitive=1`, since `0.1.0`+Wave 2):** skips the lowercasing entirely. `exact`/`prefix`/`suffix` route through a second UDF, `regexp_cs` (same pattern, no `/i` flag) — called as `regexp_cs('pattern', col)` rather than the `col regexp 'pattern'` operator syntax, because SQLite's `REGEXP` operator only ever calls the function literally named `regexp`. `substring` relies on `PRAGMA case_sensitive_like`, since SQLite's `LIKE` is otherwise case-insensitive for ASCII regardless of any lowercasing done in the query.
 
 The `\b` word boundary matters because `en` (and, to a lesser degree, `st`) contains multi-word text; the boundary lets you match a *whole word inside* an entry, not only the field as a whole.
 
@@ -134,12 +136,12 @@ Palatal n (`n^`) is replaced by **`jn`**; alveolar n (`n_`) by **`n2`**. Otherwi
 
 Search is **always case-insensitive**. Both the data column (`lower(col)`) and the query term (`strtolower`) are folded to lowercase before matching — the regex modes via the `/i` flag, the substring mode via `LIKE`.
 
-**HK case caveat — this is lossy.** In Harvard-Kyoto, *letter case is semantic*: `A` = long ā vs `a` = short a; `T` = retroflex ṭ vs `t` = dental t; `S`/`z` vs `s`; `N`/`G`/`J` vs `n`. After case-folding, these distinctions **collapse**:
+**HK case caveat — lossy by default, opt-out since `0.1.0`+Wave 2.** In Harvard-Kyoto, *letter case is semantic*: `A` = long ā vs `a` = short a; `T` = retroflex ṭ vs `t` = dental t; `S`/`z` vs `s`; `N`/`G`/`J` vs `n`. By default, after case-folding, these distinctions **collapse**:
 
 - `st=ata` and `st=aTa` (exact) match the **same** rows — both the term and the `lower(st)` column are lowercased, so the retroflex/dental contrast is erased on both sides.
 - `st=akAra` is folded to `akara`, so it can also match a stored `akara`-style spelling once both are lowercased.
 
-This is the intentional *"not case sensitive"* design advertised on the form, but it conflates genuine phonemic contrasts. To disambiguate you must rely on the surrounding spelling and context, not letter case.
+This is the *"not case sensitive"* design advertised on the form and remains the default, but the form's **"Case-sensitive search" checkbox** (`case_sensitive=1`) now opts out of it entirely — `st=aTa` with case-sensitive checked matches only `aTa`, not `ata`. Without the checkbox, disambiguation still relies on the surrounding spelling and context, not letter case.
 
 *(Implementation note: `_sqliteRegexp` omits the PCRE `/u` flag. This is correct here — the data is single-byte ASCII HK, so the ASCII `\b` word boundaries behave as intended. It would only be a latent bug if the corpus were ever migrated to Unicode script.)*
 
@@ -148,7 +150,7 @@ This is the intentional *"not case sensitive"* design advertised on the form, bu
 ## Limits & caveats
 
 1. **HK input only — no Unicode script.** You cannot type or paste Devanagari or Tamil script; everything is romanized HK ASCII. Two HK schemes apply (Sanskrit vs Tamil); using the wrong one for a dictionary yields no hits.
-2. **Case-folding conflates HK distinctions** — retroflex vs dental, long vs short vowel, and the three sibilants all collapse. You cannot force a case-sensitive HK match.
+2. **Case-folding conflates HK distinctions by default** — retroflex vs dental, long vs short vowel, and the three sibilants all collapse. Since `0.1.0`+Wave 2 you can force a case-sensitive HK match with the "Case-sensitive search" checkbox (`case_sensitive=1`).
 3. **Pahlavi (`cpd`) unavailable** — disabled in the form and excluded from `all` (`id<4`). Only mwd, cap, and otl are searchable.
 4. **AND-only — no OR, no phrase search.** Every extra word or field narrows results; multi-word `en` is unordered AND, not a quoted phrase.
 5. **Hard result cap, no paging.** `maxhits` ≤ 1000, applied as `LIMIT (int)$maxhits`; there is no pagination or offset. Broad searches truncate silently, returning the alphabetically-first N rows (`ORDER BY st COLLATE NOCASE`). To see more, raise `maxhits` (max 1000) or tighten the query.
@@ -174,7 +176,7 @@ Each row gives the exact form-field values and the expected behavior. For an API
 | 8 | `otl` | `amma` | `prefix` | — | — | `50` | **Tamil dictionary.** Online Tamil Lexicon headwords beginning with `amma` (Tamil HK scheme; `amma` uses no special Tamil letters, so it is a plain prefix match). Returns Tamil entries with English meanings. |
 | 9 | `cap` | `dharma` | `exact` | — | — | `20` | Capeller's concise dictionary: exact Sanskrit headword **dharma**. Smaller corpus — useful as a second opinion against MW. |
 | 10 | `all` | `nara` | `prefix` | — | — | `500` | **Cross-dictionary** (`id<4`): headwords starting with `nara` from mwd + cap + otl, each row tagged `(mwd)`/`(cap)`/`(otl)` with an abbreviation legend. Pahlavi excluded. |
-| 11 | `mwd` | `aTa` | `exact` | — | — | `50` | **Case-folding caveat.** Both the query term and the `lower(st)` column fold to `ata`, so headwords stored as either `ata` or `aTa` collapse to the same key and are returned indistinguishably — the retroflex/dental contrast is lost. |
+| 11 | `mwd` | `aTa` | `exact` | — | — | `50` | **Case-folding caveat (default, `case_sensitive` unchecked).** Both the query term and the `lower(st)` column fold to `ata`, so headwords stored as either `ata` or `aTa` collapse to the same key and are returned indistinguishably — the retroflex/dental contrast is lost. Check "Case-sensitive search" to get only `aTa`. |
 | 12 | `all` | — | — | `king sovereign` | `prefix` | `1000` | Reverse multi-word AND across all three dictionaries: entries whose gloss has a word starting *king* **and** a word starting *sovereign* (royalty/ruler terms), capped at 1000. |
 
 ---

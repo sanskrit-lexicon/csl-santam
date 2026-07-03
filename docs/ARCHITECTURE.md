@@ -86,7 +86,7 @@ Called first. Iterates every `$_REQUEST` key and runs `filter_var($old, FILTER_U
 
 ### b. Read inputs
 
-From `$_REQUEST`: `$dictionary, $st, $prst, $en, $pren, $maxhits`. Because the code reads `$_REQUEST`, the form's POST works and a GET query-string also works for API clients (e.g. `recherche.php?dictionary=mwd&st=agni&prst=prefix&maxhits=50`).
+From `$_REQUEST`: `$dictionary, $st, $prst, $en, $pren, $case_sensitive, $maxhits`. Because the code reads `$_REQUEST`, the form's POST works and a GET query-string also works for API clients (e.g. `recherche.php?dictionary=mwd&st=agni&prst=prefix&maxhits=50`).
 
 | param | values | default |
 |-------|--------|---------|
@@ -95,7 +95,10 @@ From `$_REQUEST`: `$dictionary, $st, $prst, $en, $pren, $maxhits`. Because the c
 | `prst` | `exact` \| `prefix` \| `suffix` \| `substring` | `exact` |
 | `en` | English word(s), searched in the description | — |
 | `pren` | `exact` \| `prefix` \| `suffix` \| `substring` | `exact` |
+| `case_sensitive` | `1` (checkbox; absent when unchecked) | absent → case-insensitive |
 | `maxhits` | `20` \| `50` \| `100` \| `200` \| `500` \| `1000` | `50` |
+
+`$case_sensitive` is computed as `isset($_REQUEST['case_sensitive']) && $_REQUEST['case_sensitive'] == '1'` — browsers omit an unchecked checkbox from the request entirely, so a missing key correctly means "off," matching the checkbox's unchecked default.
 
 ### c. `readbooks()`
 
@@ -113,42 +116,45 @@ Maps the dictionary code to `($dictnum, $dictname)`:
 
 After `trim($st)` / `trim($en)`, if **neither** field has length > 1, `fehler("No search has been formulated.")`. The check is a single OR across both fields: a ≤ 1-char value in one field is **not** rejected on its own — if the other field has length > 1 the search proceeds and the short value is still passed to `where1()` and used in the WHERE clause.
 
-### f. `compute_where($dictnum, $st, $prst, $en, $pren)`
+### f. `compute_where($dictnum, $st, $prst, $en, $pren, $case_sensitive=false)`
 
 Builds the WHERE clause:
 
 - dictionary scope: `id<4` when `dictnum=='0'` (the `all` case), else `id=$dictnum`.
-- if `$st != ""`: appends `... and ` + `where1($st, 'st', $prst)`.
-- if `$en != ""`: appends `... and ` + `where1($en, 'en', $pren)`.
+- if `$st != ""`: appends `... and ` + `where1($st, 'st', $prst, $case_sensitive)`.
+- if `$en != ""`: appends `... and ` + `where1($en, 'en', $pren, $case_sensitive)`.
 
-### g. `where1($var, $varname, $pr)` — per-field clause builder
+### g. `where1($var, $varname, $pr, $case_sensitive=false)` — per-field clause builder
 
 This is where match mode and escaping happen:
 
 - `trim`s the value, splits into words on `preg_split('/ +/', $var)` → multiple words in one field are **AND-joined**.
-- lowercases the column for matching: `$lowdata = "lower($varname)"`; lowercases each term: `$part_l = strtolower($part)`.
-- builds two escaped forms of each term:
-  - `$x = str_replace("'", "''", $part_l)` — for the **LIKE** (substring) branch.
-  - `$xr = str_replace("'", "''", preg_quote($part_l, '/'))` — for the **regexp** branches.
+- **Default (case-insensitive):** lowercases the column for matching: `$lowdata = "lower($varname)"`; lowercases each term: `$part_term = strtolower($part)`.
+- **Since `0.1.0`+Wave 2, `$case_sensitive=true` (the form's "Case-sensitive search" checkbox):** skips both — `$lowdata = $varname` (raw column), `$part_term = $part` (raw term). Two things beyond that are needed for it to actually take effect (see below): a case-sensitive regexp UDF variant, and `PRAGMA case_sensitive_like`.
+- builds two escaped forms of each term (from `$part_term`, whichever case-mode produced it):
+  - `$x` — backslash-escapes `%`/`_`/`\` then doubles `'` — for the **LIKE** (substring) branch.
+  - `$xr` — `preg_quote($part_term, '/')` then doubles `'` — for the **regexp** branches.
 - word-boundary anchors: `$wb = "\\b"`, `$we = "\\b"`.
 
-Match-mode → SQL fragment (`$regexp` is the literal string `'regexp'`, the name of the SQLite UDF):
+Match-mode → SQL fragment:
 
-| `$pr` mode | generated fragment | engine |
-|-----------|--------------------|--------|
-| `exact` | `(lower(col) regexp '\b{term}\b')` | regexp UDF |
-| `prefix` | `(lower(col) regexp '\b{term}')` | regexp UDF |
-| `suffix` | `(lower(col) regexp '{term}\b')` | regexp UDF |
-| `substring` (else) | `(lower(col) like '%{term}%')` | native SQL `LIKE` |
+| `$pr` mode | case-insensitive fragment | case-sensitive fragment | engine |
+|-----------|--------------------|--------------------|--------|
+| `exact` | `(lower(col) regexp '\b{term}\b')` | `(regexp_cs('\b{term}\b', col))` | regexp UDF |
+| `prefix` | `(lower(col) regexp '\b{term}')` | `(regexp_cs('\b{term}', col))` | regexp UDF |
+| `suffix` | `(lower(col) regexp '{term}\b')` | `(regexp_cs('{term}\b', col))` | regexp UDF |
+| `substring` (else) | `(lower(col) like '%{term}%' ESCAPE '\')` | `(col like '%{term}%' ESCAPE '\')` + `PRAGMA case_sensitive_like` | native SQL `LIKE` |
 
-`exact`/`prefix`/`suffix` route through the custom SQLite **`regexp`** function; `substring` uses native **`LIKE '%…%'`**. Multiple terms within a field are chained with ` and `. There is **no OR** anywhere in the query builder — every added word or field tightens the result set.
+`exact`/`prefix`/`suffix` route through a custom SQLite **`regexp`** function; `substring` uses native **`LIKE '%…%'`**. Multiple terms within a field are chained with ` and `. There is **no OR** anywhere in the query builder — every added word or field tightens the result set.
+
+**Why the case-sensitive fragment uses function-call syntax, not the `REGEXP` operator.** SQLite's `REGEXP` infix operator (`col regexp 'pattern'`) is hardwired to call whatever function is registered under the literal name `regexp` — it cannot be pointed at a second, differently-named function. `col regexp_cs 'pattern'` is a **SQL syntax error** (confirmed empirically). So the case-sensitive path calls the second UDF with ordinary function-call syntax instead: `regexp_cs('pattern', col)`.
 
 ### h. Assemble and run the query (top level)
 
 ```php
 $befehl = "select id,st,en from tamil where $where order by st collate nocase";
 $befehl .= " LIMIT " . (int)$maxhits;
-$results = selectfromdb($befehl);
+$results = selectfromdb($befehl, $case_sensitive);
 ```
 
 Final SQL shape:
@@ -161,25 +167,30 @@ ORDER BY st COLLATE NOCASE LIMIT <(int)maxhits>;
 
 `ORDER BY st COLLATE NOCASE` returns the alphabetically-first N rows. There is no pagination and no offset — beyond the cap, raise `maxhits` (≤ 1000) or tighten the query.
 
-### i. `selectfromdb($sql)`
+### i. `selectfromdb($sql, $case_sensitive=false)`
 
-Opens `../sqlite/tamil.sqlite` via **PDO** (`new PDO('sqlite:'…)`, `ERRMODE_EXCEPTION`), then registers the regexp UDF:
+Opens `../sqlite/tamil.sqlite` via **PDO** (`new PDO('sqlite:'…)`, `ERRMODE_EXCEPTION`), then registers **both** regexp UDF variants:
 
 ```php
 $file_db->sqliteCreateFunction('regexp', '_sqliteRegexp', 2);
+$file_db->sqliteCreateFunction('regexp_cs', '_sqliteRegexpCS', 2);
 ```
+
+Since `0.1.0`+Wave 2, if `$case_sensitive` is true, it also runs `PRAGMA case_sensitive_like = ON;` before the main query — SQLite's `LIKE` is case-**insensitive** for ASCII by default (verified empirically), independent of any `lower()`/`strtolower()` folding done in the query string itself; this pragma is the only thing that actually makes the `substring` match mode case-sensitive. The pragma is connection-local (this PDO handle is opened fresh per request and never reused), so it can never leak into another request.
 
 Runs `$file_db->query($sql)` and collects each row as `[id, st, en]`. PDO failures route to `fehler(...)`.
 
-### j. `_sqliteRegexp($pattern, $string)` — the regexp UDF
+### j. `_sqliteRegexp($pattern, $string)` / `_sqliteRegexpCS($pattern, $string)` — the regexp UDFs
 
-The active line is:
+The active line in `_sqliteRegexp`:
 
 ```php
 if (preg_match('/'.$pattern.'/i', $string)) { return true; }
 ```
 
 Case-insensitive (`/i`), **no `/u` flag** (correct for this corpus — see [Encoding rationale](#encoding-rationale)). A commented alternative `'/^'.$pattern.'$/i'` exists but is not used. This is the engine the `\b` anchors from `where1()` flow into — the word boundary lets a term match a *whole word inside* the `en` entry text, not just the field as a whole.
+
+`_sqliteRegexpCS` (added `0.1.0`+Wave 2) is identical except for the missing `/i` flag — `preg_match('/'.$pattern.'/', $string)` — giving byte-wise case-sensitive matching, called via `where1()`'s `regexp_cs(...)` function-call syntax rather than the `REGEXP` infix operator.
 
 ---
 
@@ -196,7 +207,7 @@ The query builder exposes a small, strict set of behaviors. They follow directly
 - **AND only — no OR, no phrase search.** Multiple words in one field are split on spaces and AND-joined; filling both `st` and `en` AND-joins the two condition blocks; the dictionary `id` scope is ANDed in front. So `en=white elephant` requires *both* whole words "white" and "elephant", in any order (not a phrase). Every added word or field tightens results.
 - **Minimum length 2.** The guard is a single OR across both fields — a ≤ 1-char value is **not** ignored per-field; if the other field qualifies, the short value still goes into the query. If neither field has > 1 character the search is rejected with *"No search has been formulated."*
 - **Hard result cap, no paging.** `maxhits` ∈ {20, 50, 100, 200, 500, 1000}, default 50, applied as `LIMIT (int)$maxhits`. Since `0.1.0`, a missing/`0`/negative `maxhits` (e.g. from a direct/API caller) defaults to `50` and a value above `1000` clamps to `1000`, mirroring the form's own default/max — this can no longer produce `LIMIT 0` or a SQLite error. Broad searches silently truncate at the cap; rows are ordered `st COLLATE NOCASE`, so you receive the alphabetically-first N. There is no offset.
-- **Always case-insensitive** — see the HK caveat in [Known quirks](#known-quirks--gotchas).
+- **Case-insensitive by default; opt-in case-sensitive since `0.1.0`+Wave 2.** The form's "Case-sensitive search" checkbox (`case_sensitive=1`) skips the `lower()`/`strtolower()` folding, routes `exact`/`prefix`/`suffix` through the `regexp_cs` UDF (no `/i` flag) instead of `regexp`, and sets `PRAGMA case_sensitive_like` for the `substring` `LIKE` branch — see [Request pipeline §g/§i](#request-pipeline) and the HK caveat in [Known quirks](#known-quirks--gotchas).
 
 ---
 
@@ -288,7 +299,7 @@ These guards do **not** change end-user search semantics — user-typed regex/SQ
 
 1. **"Pali" comment mislabel — fixed.** In `compute_where()` the comment on the `all` branch previously read `// 'all', exclude the 4th (Pali dictionary)` with `where = "id<4"`. Id 4 is the **Concise Pahlavi Dictionary** (`cpd`), per [dat/books](https://github.com/sanskrit-lexicon/csl-santam/blob/master/dat/books); the comment now reads "Pahlavi" (release `0.1.0`). The **code behavior** (exclude id 4 from `all`) was correct throughout — only the comment wording was wrong.
 
-2. **Case-folding over case-semantic HK.** The search lowercases both data (`lower(col)`) and query (`strtolower`), but in Harvard-Kyoto **letter case is semantic**: `A` = long ā, `T` = retroflex ṭ, `R` = vocalic ṛ, `S`/`z` vs `s` = the sibilants, `N`/`G`/`J` vs `n`. Folding case therefore **conflates HK distinctions** — `ata` and `aTa` (exact) match the same lowered string, as do `a`/`A`, `t`/`T`. This is the intentional "not case sensitive" behavior advertised in the form, but it collapses genuine phonemic contrasts; disambiguation must come from surrounding spelling/context, not letter case.
+2. **Case-folding over case-semantic HK — now opt-out.** By default the search lowercases both data (`lower(col)`) and query (`strtolower`), but in Harvard-Kyoto **letter case is semantic**: `A` = long ā, `T` = retroflex ṭ, `R` = vocalic ṛ, `S`/`z` vs `s` = the sibilants, `N`/`G`/`J` vs `n`. Folding case therefore **conflates HK distinctions** by default — `ata` and `aTa` (exact) match the same lowered string, as do `a`/`A`, `t`/`T`. This is the "not case sensitive" behavior advertised in the form and remains the default, but since `0.1.0`+Wave 2 the form's **"Case-sensitive search" checkbox** (`case_sensitive=1`) opts out of it entirely — see [Request pipeline §g](#request-pipeline) — so power users who need the HK phonemic distinctions no longer have to rely on surrounding spelling/context alone.
 
 3. **No `/u` flag in `_sqliteRegexp` is correct here** (see [Encoding rationale](#encoding-rationale)) — the corpus is single-byte ASCII HK, so ASCII `\b` boundaries work and `/u` is unwanted. This would become a bug only if the data were ever migrated to Unicode script.
 

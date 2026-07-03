@@ -8,6 +8,10 @@
  $prst=$_REQUEST['prst'];
  $en=$_REQUEST['en'];
  $pren=$_REQUEST['pren'];
+ // Case-sensitive toggle (Wave 2): opt-out from the default case-folded search so HK's
+ // phonemic letter case (A=ā, T=ṭ, S=ṣ vs s, ...) isn't conflated for power users. Unset
+ // when the form checkbox isn't ticked (browsers omit unchecked checkboxes entirely).
+ $case_sensitive = isset($_REQUEST['case_sensitive']) && $_REQUEST['case_sensitive'] == '1';
  $maxhits=$_REQUEST['maxhits'] ;
  // Default + clamp: a missing/empty/0/negative value would otherwise produce
  // "LIMIT 0" (or a SQLite error for negative); a huge value would defeat the
@@ -42,7 +46,7 @@ if (! ( (strlen($st)>1) || (strlen($en) > 1)) ) {
 }
 echo "<html><head><title>$dictname: Search Results</title></head>\n",
   "<body bgcolor=\"#ffffff\">\n<h1>$dictname: Search Results</h1>\n";
-$where = compute_where($dictnum,$st,$prst,$en,$pren);
+$where = compute_where($dictnum,$st,$prst,$en,$pren,$case_sensitive);
 if ($dbg) {
  echo "<br>where: $where<br>\n";
 }
@@ -55,7 +59,7 @@ if ($dbg) {
  echo "befehl: $befehl<br>\n";
 }
 // get results
-$results = selectfromdb($befehl);
+$results = selectfromdb($befehl,$case_sensitive);
 $nresults = count($results);
 if ($dbg) {
  echo "select $nresults results found<br>\n";
@@ -150,7 +154,7 @@ function dictionary_info($dictionary,$dictbooks) {
  }
  return array($dictnum,$dictname);
 }
-function compute_where($dictnum,$st,$prst,$en,$pren) {
+function compute_where($dictnum,$st,$prst,$en,$pren,$case_sensitive=false) {
  // construct the 'where' string for sql search
  // sqlite file has 3 fields id (= dictnum), st (headword), en (text)
  // ---- id dictnum
@@ -164,46 +168,59 @@ function compute_where($dictnum,$st,$prst,$en,$pren) {
  }
  // ---- st
  if ($st != "") {
-  $temp = where1($st,'st',$prst);
+  $temp = where1($st,'st',$prst,$case_sensitive);
   $where .= " and $temp";
  }
  if ($en != "") {
-  $temp = where1($en,'en',$pren);
+  $temp = where1($en,'en',$pren,$case_sensitive);
   $where .= " and $temp";
  }
  return $where;
 }
-function where1($var,$varname,$pr) {
+function where1($var,$varname,$pr,$case_sensitive=false) {
  $wb = "\\b"; // word begin in regexp
  $we = "\\b"; // word end
  // allow $var to have multiple words, separated by one or more spaces
  $var = trim($var);
  $parts = preg_split('/ +/',$var);
  $ans = "";
- // all regexp matches are case-insensitive
- $regexp = 'regexp';  // the regexp function in sqlite
- // in sqlite select, lowdata puts the result text into lower case for regexp
- $lowdata = "lower($varname)";  //lower is sqlite function name
+ // Case-sensitive mode (Wave 2) skips the lower()/strtolower() folding below. Two things
+ // beyond that are needed for it to actually take effect (both handled here / in
+ // selectfromdb()): SQLite's REGEXP infix operator is hardwired to a function literally
+ // named 'regexp', so a case-sensitive variant must be called via ordinary function-call
+ // syntax (regexp_cs(pattern, col)), not as an infix operator -- verified empirically,
+ // "col regexp_cs 'pattern'" is a SQL syntax error. And SQLite's LIKE is
+ // case-INsensitive for ASCII by default regardless of lower()-folding in the query, so
+ // selectfromdb() sets PRAGMA case_sensitive_like when $case_sensitive is true.
+ // in sqlite select, lowdata puts the result text into lower case for regexp (unless case-sensitive)
+ $lowdata = $case_sensitive ? $varname : "lower($varname)";  //lower is sqlite function name
  for($ipart=0;$ipart < count($parts); $ipart++) {
   $part = $parts[$ipart];
-  $part_l = strtolower($part);
+  $part_term = $case_sensitive ? $part : strtolower($part);
   // LIKE-branch escaping: neutralize the LIKE metacharacters '%' and '_' (and
   // '\' itself, the escape char) so a literal '%'/'_' in the query matches
   // itself instead of acting as a wildcard -- see the ESCAPE clause below.
   // Then escape ' for the SQLite string literal (SQLi guard).
-  $x = str_replace(array('\\', '%', '_'), array('\\\\', '\\%', '\\_'), $part_l);
+  $x = str_replace(array('\\', '%', '_'), array('\\\\', '\\%', '\\_'), $part_term);
   $x = str_replace("'", "''", $x);
-  // The regexp branches feed the value into _sqliteRegexp() -> preg_match() as a PCRE
-  // pattern, so the term must ALSO be preg_quote()d -- otherwise regex metacharacters
-  // inject and a term like "(a+)+" is a catastrophic-backtracking ReDoS (run per row).
-  // $wb/$we are the intended \b word-boundary anchors and are left active.
-  $xr = str_replace("'", "''", preg_quote($part_l, '/'));
+  // The regexp branches feed the value into _sqliteRegexp()/_sqliteRegexpCS() -> preg_match()
+  // as a PCRE pattern, so the term must ALSO be preg_quote()d -- otherwise regex
+  // metacharacters inject and a term like "(a+)+" is a catastrophic-backtracking ReDoS
+  // (run per row). $wb/$we are the intended \b word-boundary anchors and are left active.
+  $xr = str_replace("'", "''", preg_quote($part_term, '/'));
   if ($pr == "exact") {
-    $ans1 ="($lowdata $regexp '$wb$xr$we')";
+    $pattern = "$wb$xr$we";
   } else if ($pr == "prefix") {
-    $ans1 ="($lowdata $regexp '$wb$xr')";
+    $pattern = "$wb$xr";
   } else if ($pr == "suffix") {
-    $ans1 ="($lowdata $regexp '$xr$we')";
+    $pattern = "$xr$we";
+  } else {
+    $pattern = null; // substring: LIKE, not regexp
+  }
+  if ($pattern !== null) {
+    $ans1 = $case_sensitive
+      ? "(regexp_cs('$pattern', $lowdata))"
+      : "($lowdata regexp '$pattern')";
   } else { // substring
     $ans1 ="($lowdata like '%$x%' ESCAPE '\\')";
   }
@@ -228,7 +245,7 @@ function sanitize_REQUEST_all() {
   $_REQUEST[$key] = $new;
  }
 }
-function selectfromdb($sql) {
+function selectfromdb($sql,$case_sensitive=false) {
  $sqlitefile = "../sqlite/tamil.sqlite";
  try {
    $file_db = new PDO('sqlite:' .$sqlitefile);
@@ -239,6 +256,14 @@ function selectfromdb($sql) {
    fehler("Cannot open " . $sqlitefile . "\n");
   }
  $file_db->sqliteCreateFunction('regexp', '_sqliteRegexp', 2);
+ $file_db->sqliteCreateFunction('regexp_cs', '_sqliteRegexpCS', 2);
+ if ($case_sensitive) {
+  // SQLite's LIKE is case-insensitive for ASCII by default, independent of any
+  // lower()/strtolower() folding done in the query itself -- this pragma is what
+  // actually makes the 'substring' (LIKE) match mode case-sensitive. Connection-local,
+  // so it never affects any other request.
+  $file_db->exec('PRAGMA case_sensitive_like = ON;');
+ }
  //echo "sql=$sql<br>\n";
  try {
   $result = $file_db->query($sql);
@@ -263,6 +288,13 @@ function _sqliteRegexp($pattern, $string) {
  */
     #if(preg_match('/^'.$pattern.'$/i', $string)) {
     if(preg_match('/'.$pattern.'/i', $string)) {
+        return true;
+    }
+    return false;
+}
+function _sqliteRegexpCS($pattern, $string) {
+    // Case-sensitive counterpart of _sqliteRegexp() -- same pattern, no /i flag.
+    if(preg_match('/'.$pattern.'/', $string)) {
         return true;
     }
     return false;
