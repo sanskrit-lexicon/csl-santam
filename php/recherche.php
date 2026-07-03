@@ -9,6 +9,15 @@
  $en=$_REQUEST['en'];
  $pren=$_REQUEST['pren'];
  $maxhits=$_REQUEST['maxhits'] ;
+ // Default + clamp: a missing/empty/0/negative value would otherwise produce
+ // "LIMIT 0" (or a SQLite error for negative); a huge value would defeat the
+ // form's own cap. Mirror the form's own default (50) and max (1000).
+ $maxhits = (int)$maxhits;
+ if ($maxhits <= 0) {
+  $maxhits = 50;
+ } else if ($maxhits > 1000) {
+  $maxhits = 1000;
+ }
  $parmkeys = array_keys($_REQUEST);
  //$_SERVER['SCRIPT_NAME']='HELLO';
  if ($dbg) {
@@ -41,7 +50,7 @@ if ($dbg) {
 $befehl="select id,st,en from tamil where $where order by st collate nocase";
 // put in LIMIT
 
-$befehl .= " LIMIT " . (int)$maxhits;  // SQLi guard: $maxhits is $_REQUEST input
+$befehl .= " LIMIT " . (int)$maxhits;  // SQLi guard: $maxhits is $_REQUEST input, already defaulted/clamped above
 if ($dbg) {
  echo "befehl: $befehl<br>\n";
 }
@@ -148,7 +157,7 @@ function compute_where($dictnum,$st,$prst,$en,$pren) {
  // assume $dictnum is a string
  $dbg = false;
  if ($dictnum == '0') {
-  // 'all', exclude the 4th (Pali dictionary)
+  // 'all', exclude the 4th (Pahlavi dictionary)
   $where = "id<4";
  } else {
   $where = "id=$dictnum";
@@ -178,8 +187,12 @@ function where1($var,$varname,$pr) {
  for($ipart=0;$ipart < count($parts); $ipart++) {
   $part = $parts[$ipart];
   $part_l = strtolower($part);
-  // SQLi guard: escape ' for the SQLite string literal (the LIKE branch).
-  $x = str_replace("'", "''", $part_l);
+  // LIKE-branch escaping: neutralize the LIKE metacharacters '%' and '_' (and
+  // '\' itself, the escape char) so a literal '%'/'_' in the query matches
+  // itself instead of acting as a wildcard -- see the ESCAPE clause below.
+  // Then escape ' for the SQLite string literal (SQLi guard).
+  $x = str_replace(array('\\', '%', '_'), array('\\\\', '\\%', '\\_'), $part_l);
+  $x = str_replace("'", "''", $x);
   // The regexp branches feed the value into _sqliteRegexp() -> preg_match() as a PCRE
   // pattern, so the term must ALSO be preg_quote()d -- otherwise regex metacharacters
   // inject and a term like "(a+)+" is a catastrophic-backtracking ReDoS (run per row).
@@ -192,7 +205,7 @@ function where1($var,$varname,$pr) {
   } else if ($pr == "suffix") {
     $ans1 ="($lowdata $regexp '$xr$we')";
   } else { // substring
-    $ans1 ="($lowdata like '%$x%')";
+    $ans1 ="($lowdata like '%$x%' ESCAPE '\\')";
   }
   if ($ipart != 0) {
    $ans .= " and $ans1";

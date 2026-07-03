@@ -19,7 +19,7 @@ The application runs as a PHP web application on Apache/XAMPP.
 | `php/` | PHP scripts for the web interface |
 | `perl/` | Legacy Perl CGI scripts (earlier version) |
 | `CDSL.pdf` | Documentation PDF |
-| `readme_dev.txt` | Developer setup notes |
+| `docs/ARCHITECTURE.md` | Deep technical reference (request pipeline, data model, security model) |
 
 ### Installation (XAMPP/Windows)
 
