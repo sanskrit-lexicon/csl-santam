@@ -8,7 +8,9 @@ csl-santam is a web-frontend port of the Cologne ["MWScan tamil"](http://www.san
 
 ## [Unreleased]
 
-Nothing yet.
+### Added
+
+- **Semgrep SAST** ([.github/workflows/semgrep.yml](https://github.com/sanskrit-lexicon/csl-santam/blob/master/.github/workflows/semgrep.yml)), advisory, `p/php` + `p/security-audit` rulesets against [php/recherche.php](https://github.com/sanskrit-lexicon/csl-santam/blob/master/php/recherche.php). CodeQL has no PHP/Perl analyzer and would scan nothing in this repo, so it is deliberately not deployed here — same gap `csl-websanlexicon` closed with Semgrep.
 
 ## [0.1.0] — 2026-06-14
 
