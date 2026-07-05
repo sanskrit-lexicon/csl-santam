@@ -15,7 +15,7 @@ Two implementations live side by side:
 
 Maintainer: **Thomas Malten** (`th.malten@uni-koeln.de`), Cologne. Default branch: `master`. Form title: *"Sanskrit and Tamil Dictionaries"*.
 
-The corpus is **Harvard-Kyoto (HK) romanized transliteration in single-byte ASCII** (e.g. `akAra`, with `%{...}` markup), **not** Unicode Devanagari/Tamil script. This single fact drives most of the design decisions below (see [Encoding rationale](#encoding-rationale)). Users type romanized HK; the form does not accept native script.
+The corpus is **Harvard-Kyoto (HK) romanized transliteration in single-byte ASCII** (e.g. `akAra`, with `%{...}` markup), **not** Unicode Devanagari/Tamil script. This single fact drives most of the design decisions below (see [Encoding rationale](#encoding-rationale)). The backend only ever sees HK. Since `0.1.0`+Wave 2, the **form itself** additionally accepts Devanagari or IAST for Sanskrit dictionaries, auto-converting client-side to HK before submit (see [Client-side transliteration input](#client-side-transliteration-input-wave-2)) — direct HK typing keeps working exactly as before.
 
 ---
 
@@ -251,6 +251,22 @@ Note: the `otl` (Tamil) dictionary uses a **different HK scheme** from Sanskrit 
 
 ---
 
+## Client-side transliteration input (Wave 2)
+
+[php/index.html](https://github.com/sanskrit-lexicon/csl-santam/blob/master/php/index.html) loads two scripts before the form: [php/js/vendor/sanskrit-util.global.js](https://github.com/sanskrit-lexicon/csl-santam/blob/master/php/js/vendor/sanskrit-util.global.js) (vendored copy of [sanskrit-util](https://github.com/sanskrit-lexicon/sanskrit-util) `v0.3.0`, MIT — the org's canonical IAST⇄SLP1⇄Devanāgarī transcoder, per [SHARED_CODE.md](https://github.com/sanskrit-lexicon/SHARED_CODE.md) family #1) and [php/js/hk-input.js](https://github.com/sanskrit-lexicon/csl-santam/blob/master/php/js/hk-input.js), a small new glue module. **No backend change** — this is purely client-side; the PHP endpoint still only ever receives HK, exactly as before.
+
+**Reuse, not reinvention.** The SLP1→HK correspondence table in `hk-input.js` is ported verbatim from [kosha/app/transliterate.py](https://github.com/gasyoun/kosha/blob/main/app/transliterate.py)'s `_SLP1_TO_HK` — kosha already solved SLP1→HK for its own (Python, server-side) use. `hk-input.js` reuses that table plus `sanskrit-util`'s `deva_to_slp1`/`to_slp1` for the Deva/IAST→SLP1 leg, so the only genuinely new code is the small amount of JS glue and the scheme-detection policy below.
+
+**Scheme detection deliberately differs from kosha's.** kosha's `detect_scheme()` treats plain ASCII with no diacritics/Devanagari as SLP1 by default, because kosha is SLP1-native — any bare-ASCII text reaching it is assumed to already be an SLP1 key. csl-santam is **HK-native**: its entire existing corpus and UI assume plain-ASCII input already *is* Harvard-Kyoto. Blindly reusing kosha's "bare ASCII → SLP1" assumption here would silently mangle every existing user's HK input (e.g. `guRa`, valid HK, is also a string that parses as SLP1 for a different word). So `hk-input.js`'s `detectScheme()` returns `'hk'` (no-op, pass through unchanged) for any text without genuine Devanagari codepoints (`ऀ`–`ॿ`) or IAST diacritics (`ā ī ū ṛ ṝ ḷ ḹ ṃ ṁ ḥ ṅ ñ ṭ ḍ ṇ ś ṣ ḻ` + capitals) — conversion only fires on those two unambiguous signals.
+
+**Not applied to `otl` (Tamil).** The Cologne Online Tamil Lexicon uses a different HK-like scheme (see [Encoding rationale](#encoding-rationale) above — `jn`/`n2` digraphs, different consonant ordering), which `sanskrit-util` and the ported SLP1→HK table do not model. The wiring script in `index.html` checks the `dictionary` select and skips conversion entirely when `otl` is selected, leaving the Tamil-scheme input the user typed untouched. `hk-input.js` itself is dictionary-agnostic — the skip is the caller's responsibility.
+
+**Wiring.** A small inline script in `index.html` listens for the form's `submit` event, and (unless `otl` is selected) replaces the `st` field's value with `CslSantamHkInput.toHK(value)` just before the request goes out. If either vendored script fails to load, `toHK()` no-ops and returns the original text unchanged — a load failure degrades to "exactly the pre-Wave-2 behavior," never to corrupted input.
+
+**Tested:** a standalone Node harness (12 cases: plain-HK passthrough incl. SLP1-look-alikes, IAST→HK incl. all three sibilants, Devanagari→HK incl. a conjunct, Tamil-script passthrough) — all pass. Live-browser verification was attempted but blocked by a Playwright browser-profile lock in the authoring session; re-verify manually before relying on it in production if that matters.
+
+---
+
 ## Security model
 
 Hardened on `master` on 2026-06-14. Four defense layers, each escaping at the point of use; the relevant function/branch is named for each. (`sanitize_REQUEST_all()` does **not** contribute — its `FILTER_UNSAFE_RAW` is a no-op.)
@@ -288,6 +304,8 @@ These guards do **not** change end-user search semantics — user-typed regex/SQ
 |---|---|
 | [php/recherche.php](https://github.com/sanskrit-lexicon/csl-santam/blob/master/php/recherche.php) | PHP search backend (the hardened one) |
 | [php/index.html](https://github.com/sanskrit-lexicon/csl-santam/blob/master/php/index.html) | PHP search form / entry point (POSTs to `recherche.php`) |
+| [php/js/hk-input.js](https://github.com/sanskrit-lexicon/csl-santam/blob/master/php/js/hk-input.js) | Client-side Deva/IAST→HK transcode (Wave 2, no backend change) |
+| [php/js/vendor/sanskrit-util.global.js](https://github.com/sanskrit-lexicon/csl-santam/blob/master/php/js/vendor/sanskrit-util.global.js) | Vendored [sanskrit-util](https://github.com/sanskrit-lexicon/sanskrit-util) `v0.3.0` browser build (MIT) |
 | `perl/recherche.pl` + `perl/cgi-include2.pl` | Original Perl CGI backend |
 | `perl/index.html` | Perl search form |
 | [dat/books](https://github.com/sanskrit-lexicon/csl-santam/blob/master/dat/books) | dict-id → name map |
