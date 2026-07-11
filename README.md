@@ -1,5 +1,7 @@
 # csl-santam — Sanskrit and Tamil multi-dictionary search
 
+_Created: 09-07-2026 · Last updated: 11-07-2026_
+
 A web-frontend port of the Cologne [MWScan "tamil" multi-dictionary search](http://www.sanskrit-lexicon.uni-koeln.de/scans/MWScan/tamil/index.html). A single search form ([php/index.html](https://github.com/sanskrit-lexicon/csl-santam/blob/master/php/index.html)) POSTs to one backend ([php/recherche.php](https://github.com/sanskrit-lexicon/csl-santam/blob/master/php/recherche.php)), which queries one combined SQLite table (`tamil(id, st, en)`) spanning four lexica. Two implementations ship side by side: the original Perl CGI and a close PHP port. Maintainer: Thomas Malten, Cologne (th.malten@uni-koeln.de). Default branch: `master`.
 
 The four dictionaries and their entry counts:
@@ -174,6 +176,8 @@ The PHP backend was hardened on 2026-06-14, escaping user input at the point of 
 
 `0.1.0` also fixed a LIKE-branch predictability gap (not injection): the `substring` branch now backslash-escapes `%`/`_` in the search term and carries an `ESCAPE '\'` clause, so a literal `%`/`_` in an HK query matches itself instead of acting as a wildcard.
 
+Ongoing static analysis runs in CI: [.github/workflows/semgrep.yml](https://github.com/sanskrit-lexicon/csl-santam/blob/master/.github/workflows/semgrep.yml) scans [php/recherche.php](https://github.com/sanskrit-lexicon/csl-santam/blob/master/php/recherche.php) (advisory, `p/php` + `p/security-audit`). CodeQL is deliberately **not** deployed — it has no PHP/Perl analyzer, so it would scan nothing in this repo; Semgrep fills that gap (mirroring `csl-websanlexicon`).
+
 See [CHANGELOG.md](https://github.com/sanskrit-lexicon/csl-santam/blob/master/CHANGELOG.md) for the running record.
 
 ---
@@ -200,5 +204,12 @@ See [CHANGELOG.md](https://github.com/sanskrit-lexicon/csl-santam/blob/master/CH
 
 - Upstream Cologne search: [MWScan "tamil" multi-dictionary search](http://www.sanskrit-lexicon.uni-koeln.de/scans/MWScan/tamil/index.html)
 - Cologne Digital Sanskrit Dictionaries: [sanskrit-lexicon.uni-koeln.de](https://www.sanskrit-lexicon.uni-koeln.de/)
+- Deep technical reference: [docs/ARCHITECTURE.md](https://github.com/sanskrit-lexicon/csl-santam/blob/master/docs/ARCHITECTURE.md) — request pipeline, data model, security model.
+- End-user & API use cases: [docs/USE_CASES.md](https://github.com/sanskrit-lexicon/csl-santam/blob/master/docs/USE_CASES.md)
+- Roadmap: [docs/ROADMAP_2026_2027.md](https://github.com/sanskrit-lexicon/csl-santam/blob/master/docs/ROADMAP_2026_2027.md)
 - Project report: [CDSL.pdf](https://github.com/sanskrit-lexicon/csl-santam/blob/master/CDSL.pdf)
 - Maintainer: Thomas Malten — th.malten@uni-koeln.de
+
+---
+
+_Dr. Mārcis Gasūns_
