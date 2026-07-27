@@ -29,6 +29,16 @@ The data lives in `sqlite/ganz.txt` (~25 MB), a tab-delimited flat file with **t
 dict-id <TAB> headword(st) <TAB> entry(en)
 ```
 
+### Normalized UTF-8 export: `sqlite/ganz_utf8.txt`
+
+[sqlite/normalize_utf8.py](https://github.com/sanskrit-lexicon/csl-santam/blob/master/sqlite/normalize_utf8.py) re-exports `ganz.txt` to `sqlite/ganz_utf8.txt` (Wave 3 migration artifact, [ROADMAP_2026_2027.md](https://github.com/sanskrit-lexicon/csl-santam/blob/master/docs/ROADMAP_2026_2027.md)):
+
+```
+dict-id <TAB> dict-code <TAB> headword(st) <TAB> entry(en)
+```
+
+It decodes `st`/`en` from Windows-1252 to UTF-8 (mirroring `recherche.php`'s render-time `iconv("Windows-1252","UTF-8",$en)`, see below) and adds an explicit `mwd`/`cap`/`otl`/`cpd` dict-code column read from [dat/books](https://github.com/sanskrit-lexicon/csl-santam/blob/master/dat/books). All 325,838 rows decode as valid UTF-8 with zero replacement characters. This export is **additive** — `ganz.txt` and `tamil.sqlite` are untouched, and `recherche.php` still runs its own per-row `iconv()`. It exists for Wave 3's client-side engine (and Wave 4's kosha fold-in) to consume, not as a live-serving change.
+
 ### The `tamil` table
 
 `ganz.txt` is imported into one table named `tamil` by [sqlite/def.sql](https://github.com/sanskrit-lexicon/csl-santam/blob/master/sqlite/def.sql) (verbatim):
