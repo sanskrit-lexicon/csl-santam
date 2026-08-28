@@ -8,6 +8,10 @@ csl-santam is a web-frontend port of the Cologne ["MWScan tamil"](http://www.san
 
 ## [Unreleased]
 
+Nothing yet.
+
+## [0.2.0] — 2026-08-28
+
 ### Added
 
 - **Clean-UTF-8 corpus export** (Wave 3 migration artifact, [docs/ROADMAP_2026_2027.md](https://github.com/sanskrit-lexicon/csl-santam/blob/master/docs/ROADMAP_2026_2027.md)). [sqlite/normalize_utf8.py](https://github.com/sanskrit-lexicon/csl-santam/blob/master/sqlite/normalize_utf8.py) re-exports `sqlite/ganz.txt` to `sqlite/ganz_utf8.txt`, decoding the Windows-1252 `en` (and `st`) fields to UTF-8 — mirroring the per-row `iconv("Windows-1252","UTF-8")` workaround at [php/recherche.php:97](https://github.com/sanskrit-lexicon/csl-santam/blob/master/php/recherche.php#L97) — and adding an explicit `mwd`/`cap`/`otl`/`cpd` dict-code column alongside the numeric id (from [dat/books](https://github.com/sanskrit-lexicon/csl-santam/blob/master/dat/books)). All 325,838 rows (321,620 active + 4,218 disabled-Pahlavi) round-trip as valid UTF-8 with zero replacement characters. Along the way, fixed 6 rows (e.g. "Bühler", "über") whose `en` field the live iconv() workaround silently drops today — byte `0x81` is undefined in Windows-1252 but always represents `ü` in this corpus, so it's remapped before decoding. This export is additive only; `php/recherche.php` and `sqlite/tamil.sqlite` are unchanged — it is the artifact Wave 3's client-side rebuild and Wave 4's kosha fold-in will consume.
@@ -48,5 +52,6 @@ The search backend [php/recherche.php](https://github.com/sanskrit-lexicon/csl-s
 
 - **Perl → PHP parity.** The PHP backend is a close port of `perl/recherche.pl` + `perl/cgi-include2.pl`. The one documented divergence: the PHP `maxhits` dropdown offers `20 / 50 / 100 / 200 / 500 / 1000` (default `50`) and drops the Perl original's `all` option ([php/index.html](https://github.com/sanskrit-lexicon/csl-santam/blob/master/php/index.html)). The `en` field is re-encoded `iconv("Windows-1252","UTF-8", …)` per row at render time in the PHP port (the Perl code does this conversion itself).
 
-[Unreleased]: https://github.com/sanskrit-lexicon/csl-santam/compare/v0.1.0...master
+[Unreleased]: https://github.com/sanskrit-lexicon/csl-santam/compare/v0.2.0...master
+[0.2.0]: https://github.com/sanskrit-lexicon/csl-santam/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/sanskrit-lexicon/csl-santam/releases/tag/v0.1.0
