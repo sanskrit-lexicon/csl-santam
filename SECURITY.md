@@ -23,7 +23,7 @@ We will acknowledge within five working days and triage privately.
 
 - Bug reports about display rendering, broken links, or character-encoding glitches in dictionary entries — please use the regular issue tracker with the appropriate type label.
 - Concerns about dictionary content (typos, mistranslations, scholarly disagreement) — these are *editorial* matters, not security; please open a normal `text-correction` or `question` issue.
-- The intentional case-folding of Harvard-Kyoto input (documented in [docs/ARCHITECTURE.md](https://github.com/sanskrit-lexicon/csl-santam/blob/master/docs/ARCHITECTURE.md#known-quirks--gotchas)) — this is a search-semantics design choice, not a vulnerability.
+- The intentional case-folding of Harvard-Kyoto input (documented in [docs/ARCHITECTURE.md](https://github.com/sanskrit-lexicon/csl-santam/blob/master/docs/ARCHITECTURE.md#known-quirks-gotchas)) — this is a search-semantics design choice, not a vulnerability.
 
 ## Licence
 
