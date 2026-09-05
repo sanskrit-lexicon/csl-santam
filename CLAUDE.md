@@ -1,3 +1,5 @@
+_Created: 15-05-2026 · Last updated: 05-09-2026_
+
 # CLAUDE.md
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
@@ -30,3 +32,5 @@ The application runs as a PHP web application on Apache/XAMPP.
 
 - **PHP** (CLI + PDO + SQLite3 drivers)
 - **Apache/XAMPP** for local development
+
+_Dr. Mārcis Gasūns_

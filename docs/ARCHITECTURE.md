@@ -1,3 +1,5 @@
+_Created: 14-06-2026 · Last updated: 05-09-2026_
+
 # csl-santam — Architecture
 
 Deep technical reference for the dictionary-search backend of [sanskrit-lexicon/csl-santam](https://github.com/sanskrit-lexicon/csl-santam). Every function name, branch, schema, and string literal below is quoted verbatim from live `master`. Source files are linked inline with full `blob` URLs.
@@ -364,3 +366,5 @@ Check items off as sub-tasks land; on handoff, move finished work to **✅ Compl
 ### `README.md`
 
 The shipped `README.md` is an auto-generated Cologne tooling-runbook stub (only "Runtime: Perl", plus generic **0-open-issue tables**). Those stale auto-generated issue tables **must be removed** when the README is deepened — replace the stub with real substance (what the tool is, the HK-input rule, how to run the PHP/Perl forms, the four dictionaries, the build via [redo.bat](https://github.com/sanskrit-lexicon/csl-santam/blob/master/sqlite/redo.bat)). Do not retain the placeholder issue tables.
+
+_Dr. Mārcis Gasūns_

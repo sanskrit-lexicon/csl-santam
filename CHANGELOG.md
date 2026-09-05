@@ -1,3 +1,5 @@
+_Created: 14-06-2026 · Last updated: 05-09-2026_
+
 # Changelog
 
 All notable changes to [csl-santam](https://github.com/sanskrit-lexicon/csl-santam) are documented in this file.
@@ -55,3 +57,5 @@ The search backend [php/recherche.php](https://github.com/sanskrit-lexicon/csl-s
 [Unreleased]: https://github.com/sanskrit-lexicon/csl-santam/compare/v0.2.0...master
 [0.2.0]: https://github.com/sanskrit-lexicon/csl-santam/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/sanskrit-lexicon/csl-santam/releases/tag/v0.1.0
+
+_Dr. Mārcis Gasūns_

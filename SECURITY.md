@@ -1,3 +1,5 @@
+_Created: 03-07-2026 · Last updated: 05-09-2026_
+
 # Security policy
 
 csl-santam is a PHP/Perl web frontend ([php/recherche.php](https://github.com/sanskrit-lexicon/csl-santam/blob/master/php/recherche.php)) that accepts untrusted search input and queries a local SQLite database. The principal security concerns are:
@@ -26,3 +28,5 @@ We will acknowledge within five working days and triage privately.
 ## Licence
 
 This security policy itself is licensed CC BY 4.0.
+
+_Dr. Mārcis Gasūns_

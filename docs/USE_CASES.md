@@ -1,3 +1,5 @@
+_Created: 14-06-2026 · Last updated: 05-09-2026_
+
 # csl-santam — End-User & API Use Cases
 
 A web-frontend port of the Cologne *"MWScan tamil"* multi-dictionary search. A single search form ([php/index.html](https://github.com/sanskrit-lexicon/csl-santam/blob/master/php/index.html)) POSTs to a single endpoint ([php/recherche.php](https://github.com/sanskrit-lexicon/csl-santam/blob/master/php/recherche.php)), which queries **one combined SQLite table** (`tamil(id, st, en)`) spanning four lexica. The data is imported from [sqlite/ganz.txt](https://github.com/sanskrit-lexicon/csl-santam/blob/master/sqlite/ganz.txt) (~25 MB, tab-delimited: `dict-id <TAB> headword(st) <TAB> entry(en)`) into the `tamil` table via [sqlite/def.sql](https://github.com/sanskrit-lexicon/csl-santam/blob/master/sqlite/def.sql), rebuilt by [sqlite/redo.bat](https://github.com/sanskrit-lexicon/csl-santam/blob/master/sqlite/redo.bat).
@@ -202,3 +204,5 @@ The backend was hardened on 2026-06-14. These fixes do **not** change end-user s
 - [sqlite/def.sql](https://github.com/sanskrit-lexicon/csl-santam/blob/master/sqlite/def.sql) — `tamil` table schema and import.
 - [sqlite/redo.bat](https://github.com/sanskrit-lexicon/csl-santam/blob/master/sqlite/redo.bat) — database rebuild script (XAMPP `sqlite3`).
 - [docs/ARCHITECTURE.md](https://github.com/sanskrit-lexicon/csl-santam/blob/master/docs/ARCHITECTURE.md) — deep technical reference (`readme_dev.txt` was retired in `0.1.0`; its content lives on here).
+
+_Dr. Mārcis Gasūns_

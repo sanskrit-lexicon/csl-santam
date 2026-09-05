@@ -1,3 +1,5 @@
+_Created: 02-06-2015 · Last updated: 05-09-2026_
+
 1. The data files of this repository are obtained from the
     [Cologne Sanskrit-Lexicon](http://www.sanskrit-lexicon.uni-koeln.de/) and are protected under the
     Creative Commons Attribution Non-Commercial Share Alike license available in full 
@@ -8,3 +10,5 @@ MIT license, which is stated [here](http://opensource.org/licenses/MIT).
 
 
     
+
+_Dr. Mārcis Gasūns_
