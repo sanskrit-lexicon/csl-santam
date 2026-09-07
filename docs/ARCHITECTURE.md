@@ -361,7 +361,7 @@ Check items off as sub-tasks land; on handoff, move finished work to **✅ Compl
 
 ### `CHANGELOG.md`
 
-[CHANGELOG.md](https://github.com/sanskrit-lexicon/csl-santam/blob/master/CHANGELOG.md) is a valid [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) file: **newest-first**, with a dated `## [Unreleased]` heading, canonical sections (`### Security`, `### Changed`, …), and each change-bearing entry linking the **full PR URL** as `([PR #N](…))`. The 2026-06-14 hardening pass added the four `### Security` entries (PRs [#4](https://github.com/sanskrit-lexicon/csl-santam/pull/4)–[#7](https://github.com/sanskrit-lexicon/csl-santam/pull/7)) and the `### Changed` Dependabot bump ([#3](https://github.com/sanskrit-lexicon/csl-santam/pull/3)) now at the top of that file — see it for the canonical format. Newer entries are prepended above older ones; never append at the bottom.
+[CHANGELOG.md](https://github.com/sanskrit-lexicon/csl-santam/blob/master/CHANGELOG.md) is a valid [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) file: **newest-first**, with a dated `## [Unreleased]` heading, canonical sections (`### Security`, `### Changed`, …), and each change-bearing entry linking the **full PR URL** as `(PR #N)`. The 2026-06-14 hardening pass added the four `### Security` entries (PRs [#4](https://github.com/sanskrit-lexicon/csl-santam/pull/4)–[#7](https://github.com/sanskrit-lexicon/csl-santam/pull/7)) and the `### Changed` Dependabot bump ([#3](https://github.com/sanskrit-lexicon/csl-santam/pull/3)) now at the top of that file — see it for the canonical format. Newer entries are prepended above older ones; never append at the bottom.
 
 ### `README.md`
 
